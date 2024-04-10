@@ -1,4 +1,5 @@
 import re
+import os
 import sys
 import logging
 
@@ -16,11 +17,10 @@ logger.addHandler(handler)
 
 
 def main():
-    # file_path = questionary.text(
-    #     "Enter the path to the TCX file you want to export to trainingpeaks",
-    #     validate=lambda text: os.path.isfile(text)
-    # ).ask()
-    file_path = "/Users/brito/Downloads/Nata_o_da_tarde.tcx"
+    file_path = questionary.text(
+        "Enter the path to the TCX file you want to export to trainingpeaks",
+        validate=lambda text: os.path.isfile(text)
+    ).ask()
     sport = questionary.select(
         "What sport do you want to export to trainingpeaks?",
         choices=[
@@ -45,10 +45,6 @@ def main():
 
 
 def format_to_swim(file_path: str) -> None:
-    # 1 - open the file
-    # 2 - replace first line
-    # 3 - replace heart rate to integer
-
     with open(file_path, "r") as xml_file:
         xml_str = xml_file.readlines()
         xml_str[0] = '''<TrainingCenterDatabase xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2" xsi:schemaLocation="http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2 http://www8.garmin.com/xmlschemas/TrainingCenterDatabasev2.xsd">\n'''
