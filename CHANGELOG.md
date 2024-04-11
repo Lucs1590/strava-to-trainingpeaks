@@ -1,3 +1,9 @@
+## 0.3.0 (2024-04-11)
+
+### BREAKING CHANGE
+
+- initial version
+
 ## 0.2.0 (2024-04-11)
 
 ### Feat
