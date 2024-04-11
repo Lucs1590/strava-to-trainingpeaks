@@ -20,13 +20,13 @@ The idea for this script came from the need to synchronize my triathlon training
 
 ### Workflow
 
-1 - Choose the sport you want to export;
-2 - Do you want to download the `.tcx` file or select from the local directory?
-2.1 - User chooses the ID of the activity on Strava;
-2.2 - The download is performed by accessing the activity route with `/export_original` or `/export_tcx` endpoints;
-3 - Indicate the path of the local directory file;
-4 - If it is swimming or something else, the `.tcx` file is formatted; if it is running or biking, the `.tcx` file is validated;
-5 - Indent the `.tcx` file.
+1. Choose the sport you want to export;
+2. Do you want to download the `.tcx` file or select from the local directory?
+    1. User chooses the ID of the activity on Strava;
+    2. The download is performed by accessing the activity route with `/export_original` or `/export_tcx` endpoints;
+3. Indicate the path of the local directory file;
+4. If it is swimming or something else, the `.tcx` file is formatted; if it is running or biking, the `.tcx` file is validated;
+5. Indent the `.tcx` file.
 
 ## Installation
 
@@ -81,4 +81,3 @@ This project is licensed under the MIT License - see the [LICENSE](https://githu
 3. Commit your changes (`git commit -m 'feat: My new feature'`).
 4. Push to the branch (`git push origin my-feature`).
 5. Create a new Pull Request.
-
