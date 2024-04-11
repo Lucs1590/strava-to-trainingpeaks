@@ -2,6 +2,7 @@ import re
 import os
 import sys
 import logging
+from xml.dom import minidom  # Import minidom for XML indentation
 from typing import List
 
 import questionary
@@ -32,7 +33,7 @@ def main():
         logger.error("Invalid sport selected")
         sys.exit(1)
 
-    indent_xml(file_path)
+    indent_xml_file(file_path)  # Indent the XML file after modifications
     logger.info("Done!")
 
 
@@ -55,7 +56,7 @@ def format_to_swim(file_path: str) -> None:
     xml_str = modify_xml_header(xml_str)
     xml_str = re.sub(r"<Value>(\d+)\.0</Value>", r"<Value>\1</Value>", xml_str)
     xml_str = re.sub(r'<Activity Sport="Swim">',
-                     r'<Activity Sport="Other">',xml_str)
+                     r'<Activity Sport="Other">', xml_str)
     write_xml_file(file_path, xml_str)
 
 
@@ -74,6 +75,16 @@ def modify_xml_header(xml_str: str) -> str:
 def write_xml_file(file_path: str, xml_str: str) -> None:
     with open(file_path, "w") as xml_file:
         xml_file.write(xml_str)
+
+
+def indent_xml_file(file_path: str) -> None:
+    with open(file_path, "r") as xml_file:
+        xml_content = xml_file.read()
+
+    xml_dom = minidom.parseString(xml_content)
+
+    with open(file_path, "w") as xml_file:
+        xml_file.write(xml_dom.toprettyxml(indent="  "))
 
 
 if __name__ == "__main__":
