@@ -20,13 +20,13 @@ if not logger.handlers:
 
 def main():
     sport = ask_sport()
-    logger.info(f"Selected sport: {sport}")
+    logger.info(f"Selected sport: %s", sport)
 
     file_location = ask_file_location()
 
     if file_location == "Download":
         activity_id = ask_activity_id()
-        logger.info(f"Selected activity ID: {activity_id}")
+        logger.info(f"Selected activity ID: %s", activity_id)
         logger.info("Downloading the TCX file from Strava")
         download_tcx_file(activity_id, sport)
 
@@ -142,7 +142,7 @@ def indent_xml_file(file_path: str) -> None:
 
         with open(file_path, "w", encoding='utf-8') as xml_file:
             xml_file.write(xml_dom.toprettyxml(indent="  "))
-    except Exception as err:
+    except Exception:
         logger.warning(
             "Failed to indent the XML file. The file will be saved without indentation."
         )

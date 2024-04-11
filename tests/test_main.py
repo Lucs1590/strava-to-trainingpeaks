@@ -1,7 +1,21 @@
+import os
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-from src.main import *
+from src.main import (
+    download_tcx_file,
+    read_xml_file,
+    modify_xml_header,
+    write_xml_file,
+    format_to_swim,
+    validate_tcx_file,
+    indent_xml_file,
+    main,
+    ask_sport,
+    ask_file_location,
+    ask_activity_id,
+    ask_file_path
+)
 
 
 class TestMain(unittest.TestCase):
@@ -108,11 +122,11 @@ class TestMain(unittest.TestCase):
     def test_indent_xml_file_error(self):
         file_path = "assets/test.xml"
 
-        with patch('src.main.parseString') as mock_parseString:
-            mock_parseString.return_value = Exception("Error")
+        with patch('src.main.parseString') as mock_parse_string:
+            mock_parse_string.return_value = Exception("Error")
             indent_xml_file(file_path)
 
-        self.assertTrue(mock_parseString.called)
+        self.assertTrue(mock_parse_string.called)
 
     @patch('src.main.ask_sport')
     @patch('src.main.ask_file_location')
