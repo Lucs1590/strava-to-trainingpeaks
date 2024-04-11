@@ -114,7 +114,7 @@ def write_xml_file(file_path: str, xml_str: str) -> None:
         xml_file.write(xml_str)
 
 
-def validate_tcx_file(file_path: str) -> None:
+def validate_tcx_file(file_path: str) -> bool:
     xml_str = read_xml_file(file_path)
     if not xml_str:
         logger.error("The TCX file is empty.")
@@ -127,6 +127,7 @@ def validate_tcx_file(file_path: str) -> None:
             "The TCX file is valid. You covered a significant distance in this activity, with %d meters.",
             data.distance
         )
+        return True
     except Exception as err:
         logger.error("Invalid TCX file.")
         raise ValueError(f"Error reading the TCX file: {err}") from err
