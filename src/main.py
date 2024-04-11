@@ -29,42 +29,42 @@ def main():
     if file_location == "Download":
         activity_id = ask_activity_id()
         logger.info(f"Selected activity ID: {activity_id}")
-        logger.info("Downloading the TCX file from strava")
+        logger.info("Downloading the TCX file from Strava")
         download_tcx_file(activity_id, sport)
 
     file_path = ask_file_path(file_location)
 
     if sport in ["Swim", "Other"]:
-        logger.info("Formatting the TCX file to be imported to trainingpeaks")
+        logger.info("Formatting the TCX file to be imported to TrainingPeaks")
         format_to_swim(file_path)
     elif sport in ["Bike", "Run"]:
         logger.info("Validating the TCX file")
         validate_tcx_file(file_path)
     else:
         logger.error("Invalid sport selected")
-        raise ValueError("Invalid sport selected") from None
+        raise ValueError("Invalid sport selected")
 
     indent_xml_file(file_path)
-    logger.info("Done!")
+    logger.info("Process completed successfully!")
 
 
 def ask_sport() -> str:
     return questionary.select(
-        "What sport do you want to export to trainingpeaks?",
+        "Which sport do you want to export to TrainingPeaks?",
         choices=["Bike", "Run", "Swim", "Other"]
     ).ask()
 
 
 def ask_file_location() -> str:
     return questionary.select(
-        "Do you want to download the TCX file from strava or pass the path to the file?",
-        choices=["Download", "Pass"]
+        "Do you want to download the TCX file from Strava or provide the file path?",
+        choices=["Download", "Provide path"]
     ).ask()
 
 
 def ask_activity_id() -> str:
     return questionary.text(
-        "Enter the strava activity ID you want to export to trainingpeaks:"
+        "Enter the Strava activity ID you want to export to TrainingPeaks:"
     ).ask()
 
 
@@ -77,13 +77,13 @@ def download_tcx_file(activity_id: str, sport: str) -> None:
         webbrowser.open(url)
     except Exception as err:
         logger.error(
-            "It was not possible to download the TCX file from strava."
+            "Failed to download the TCX file from Strava."
         )
         raise ValueError("Error opening the browser") from err
 
 
 def ask_file_path(file_location) -> str:
-    question = "Enter the path to the TCX file:" if file_location == "Pass" else "Check if the TCX file was downloaded and then enter the path to the file:"
+    question = "Enter the path to the TCX file:" if file_location == "Provide path" else "Check if the TCX file was downloaded and then enter the path to the file:"
     return questionary.text(
         question,
         validate=os.path.isfile
@@ -120,13 +120,13 @@ def validate_tcx_file(file_path: str) -> None:
     xml_str = read_xml_file(file_path)
     if not xml_str:
         logger.error("The TCX file is empty.")
-        raise ValueError("The TCX file is empty.") from None
+        raise ValueError("The TCX file is empty.")
 
     tcx_reader = TCXReader()
     try:
         data = tcx_reader.read(file_path)
         logger.info(
-            "The TCX file is valid. In fact, you went far in this activity, with %d meters.",
+            "The TCX file is valid. You covered a significant distance in this activity, with %d meters.",
             data.distance
         )
     except Exception as err:
@@ -145,7 +145,7 @@ def indent_xml_file(file_path: str) -> None:
             xml_file.write(xml_dom.toprettyxml(indent="  "))
     except Exception as e:
         logger.warning(
-            "It was not possible to indent the XML file. The file will be saved without indentation."
+            "Failed to indent the XML file. The file will be saved without indentation."
         )
 
 
