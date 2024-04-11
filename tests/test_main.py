@@ -192,6 +192,55 @@ class TestMain(unittest.TestCase):
         mock_validate.assert_called_once_with("assets/bike.tcx")
         mock_indent.assert_called_once_with("assets/bike.tcx")
 
+    def test_ask_sport(self):
+        with patch('src.main.questionary.select') as mock_select:
+            mock_select.return_value.ask.return_value = "Bike"
+            result = ask_sport()
+            mock_select.assert_called_once_with(
+                "Which sport do you want to export to TrainingPeaks?",
+                choices=["Bike", "Run", "Swim", "Other"]
+            )
+            self.assertEqual(result, "Bike")
+
+    def test_ask_file_location(self):
+        with patch('src.main.questionary.select') as mock_select:
+            mock_select.return_value.ask.return_value = "Download"
+            result = ask_file_location()
+            mock_select.assert_called_once_with(
+                "Do you want to download the TCX file from Strava or provide the file path?",
+                choices=["Download", "Provide path"]
+            )
+            self.assertEqual(result, "Download")
+
+    def test_ask_activity_id(self):
+        with patch('src.main.questionary.text') as mock_text:
+            mock_text.return_value.ask.return_value = "1234"
+            result = ask_activity_id()
+            mock_text.assert_called_once_with(
+                "Enter the Strava activity ID you want to export to TrainingPeaks:"
+            )
+            self.assertEqual(result, "1234")
+
+    def test_ask_file_path(self):
+        with patch('src.main.questionary.path') as mock_path:
+            mock_path.return_value.ask.return_value = "assets/test.tcx"
+            result = ask_file_path("Provide path")
+            mock_path.assert_called_once_with(
+                "Enter the path to the TCX file:",
+                validate=os.path.isfile
+            )
+            self.assertEqual(result, "assets/test.tcx")
+
+            mock_path.reset_mock()
+
+            mock_path.return_value.ask.return_value = "assets/downloaded.tcx"
+            result = ask_file_path("Download")
+            mock_path.assert_called_once_with(
+                "Check if the TCX file was downloaded and then enter the path to the file:",
+                validate=os.path.isfile
+            )
+            self.assertEqual(result, "assets/downloaded.tcx")
+
 
 if __name__ == '__main__':
     unittest.main()
