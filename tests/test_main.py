@@ -114,6 +114,84 @@ class TestMain(unittest.TestCase):
 
         self.assertTrue(mock_parseString.called)
 
+    @patch('src.main.ask_sport')
+    @patch('src.main.ask_file_location')
+    @patch('src.main.ask_activity_id')
+    @patch('src.main.download_tcx_file')
+    @patch('src.main.ask_file_path')
+    @patch('src.main.format_to_swim')
+    @patch('src.main.validate_tcx_file')
+    @patch('src.main.indent_xml_file')
+    def test_main(self, mock_indent, mock_validate, mock_format, mock_ask_path, mock_download, mock_ask_id,
+                  mock_ask_location, mock_ask_sport):
+        mock_ask_sport.return_value = "Swim"
+        mock_ask_location.return_value = "Download"
+        mock_ask_id.return_value = "12345"
+        mock_ask_path.return_value = "assets/swim.tcx"
+
+        main()
+
+        mock_ask_sport.assert_called_once()
+        mock_ask_location.assert_called_once()
+        mock_ask_id.assert_called_once()
+        mock_ask_path.assert_called_once()
+        mock_download.assert_called_once_with("12345", "Swim")
+        mock_format.assert_called_once_with("assets/swim.tcx")
+        mock_validate.assert_not_called()
+        mock_indent.assert_called_once_with("assets/swim.tcx")
+
+    @patch('src.main.ask_sport')
+    @patch('src.main.ask_file_location')
+    @patch('src.main.ask_activity_id')
+    @patch('src.main.download_tcx_file')
+    @patch('src.main.ask_file_path')
+    @patch('src.main.format_to_swim')
+    @patch('src.main.validate_tcx_file')
+    @patch('src.main.indent_xml_file')
+    def test_main_invalid_sport(self, mock_indent, mock_validate, mock_format, mock_ask_path, mock_download,
+                                mock_ask_id, mock_ask_location, mock_ask_sport):
+        mock_ask_sport.return_value = "InvalidSport"
+        mock_ask_location.return_value = "Download"
+        mock_ask_id.return_value = "12345"
+        mock_ask_path.return_value = "assets/swim.tcx"
+
+        with self.assertRaises(ValueError):
+            main()
+
+        mock_ask_sport.assert_called_once()
+        mock_ask_location.assert_called_once()
+        mock_ask_id.assert_called_once()
+        mock_ask_path.assert_called_once()
+        mock_download.assert_called_once()
+        mock_format.assert_not_called()
+        mock_validate.assert_not_called()
+        mock_indent.assert_not_called()
+
+    @patch('src.main.ask_sport')
+    @patch('src.main.ask_file_location')
+    @patch('src.main.ask_activity_id')
+    @patch('src.main.download_tcx_file')
+    @patch('src.main.ask_file_path')
+    @patch('src.main.format_to_swim')
+    @patch('src.main.validate_tcx_file')
+    @patch('src.main.indent_xml_file')
+    def test_main_bike_sport(self, mock_indent, mock_validate, mock_format, mock_ask_path, mock_download,
+                             mock_ask_id, mock_ask_location, mock_ask_sport):
+        mock_ask_sport.return_value = "Bike"
+        mock_ask_location.return_value = "Local"
+        mock_ask_path.return_value = "assets/bike.tcx"
+
+        main()
+
+        mock_ask_sport.assert_called_once()
+        mock_ask_location.assert_called_once()
+        mock_ask_id.assert_not_called()
+        mock_ask_path.assert_called_once()
+        mock_download.assert_not_called()
+        mock_format.assert_not_called()
+        mock_validate.assert_called_once_with("assets/bike.tcx")
+        mock_indent.assert_called_once_with("assets/bike.tcx")
+
 
 if __name__ == '__main__':
     unittest.main()
