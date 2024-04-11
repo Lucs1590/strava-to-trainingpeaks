@@ -82,7 +82,7 @@ def download_tcx_file(activity_id: str, sport: str) -> None:
 
 def ask_file_path(file_location) -> str:
     question = "Enter the path to the TCX file:" if file_location == "Provide path" else "Check if the TCX file was downloaded and then enter the path to the file:"
-    return questionary.text(
+    return questionary.path(
         question,
         validate=os.path.isfile
     ).ask()
