@@ -66,6 +66,45 @@ class TestMain(unittest.TestCase):
 
         self.assertEqual(content, xml_str)
 
+    @patch('src.main.write_xml_file')
+    def test_format_to_swim(self, mock_write):
+        file_path = "assets/swim.tcx"
+        format_to_swim(file_path)
+
+        mock_write.assert_called_once()
+        self.assertTrue(mock_write.called)
+
+    def test_validate_tcx_file(self):
+        file_path = "assets/bike.tcx"
+        result = validate_tcx_file(file_path)
+        self.assertTrue(result)
+
+    def test_validate_tcx_file_error(self):
+        file_path = "assets/swim.tcx"
+
+        with self.assertRaises(ValueError):
+            validate_tcx_file(file_path)
+
+    @patch('src.main.read_xml_file')
+    def test_validate_tcx_file_error_no_file(self, mock_read):
+        file_path = "assets/test.xml"
+        mock_read.return_value = ""
+
+        with self.assertRaises(ValueError):
+            validate_tcx_file(file_path)
+
+    def test_indent_xml_file(self):
+        file_path = "assets/test.xml"
+        indent_xml_file(file_path)
+
+        with open(file_path, "r") as xml_file:
+            content = xml_file.read()
+
+        self.assertIn(
+            "<root>",
+            content
+        )
+
 
 if __name__ == '__main__':
     unittest.main()
