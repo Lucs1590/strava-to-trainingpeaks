@@ -72,7 +72,7 @@ Follow the on-screen instructions after running the script. You'll be prompted t
 
 ### Example Usage
 
-TODO: add asciinema here
+[![asciicast](https://asciinema.org/a/YtCDwQMThtlfgerhir12YA4Kb.svg)](https://asciinema.org/a/YtCDwQMThtlfgerhir12YA4Kb)
 
 ## License
 
