@@ -8,6 +8,8 @@ from typing import List
 import questionary
 import webbrowser
 
+from tcxreader.tcxreader import TCXReader
+
 logger = logging.getLogger()
 
 if not logger.handlers:
@@ -32,13 +34,12 @@ def main():
     if sport in ["Swim", "Other"]:
         logger.info("Formatting the TCX file to be imported to trainingpeaks")
         format_to_swim(file_path)
-    elif sport == "Run":
-        logger.info("Not implemented yet")
-    elif sport == "Bike":
-        logger.info("Not implemented yet")
+    elif sport in ["Bike", "Run"]:
+        logger.info("Validating the TCX file")
+        validate_tcx_file(file_path)
     else:
         logger.error("Invalid sport selected")
-        sys.exit(1)
+        raise ValueError("Invalid sport selected") from None
 
     indent_xml_file(file_path)
     logger.info("Done!")
@@ -64,12 +65,11 @@ def download_tcx_file(activity_id: str, sport: str) -> None:
         url = f"https://www.strava.com/activities/{activity_id}/export_tcx"
     try:
         webbrowser.open(url)
-    except Exception as e:
+    except Exception as err:
         logger.error(
             "It was not possible to download the TCX file from strava."
         )
-        logger.error(f"Error opening the browser: {e}.")
-        sys.exit(1)
+        raise ValueError("Error opening the browser") from err
 
 
 def ask_file_path() -> str:
@@ -103,6 +103,24 @@ def modify_xml_header(xml_str: str) -> str:
 def write_xml_file(file_path: str, xml_str: str) -> None:
     with open(file_path, "w") as xml_file:
         xml_file.write(xml_str)
+
+
+def validate_tcx_file(file_path: str, sport: str) -> None:
+    xml_str = read_xml_file(file_path)
+    if not xml_str:
+        logger.error("The TCX file is empty.")
+        raise ValueError("The TCX file is empty.") from None
+
+    tcx_reader = TCXReader()
+    try:
+        data = tcx_reader.read(file_path)
+        logger.info(
+            "The TCX file is valid. In fact, you went far in this activity, with %d meters.",
+            data.distance
+        )
+    except Exception as err:
+        logger.error("Invalid TCX file.")
+        raise ValueError(f"Error reading the TCX file: {err}") from err
 
 
 def indent_xml_file(file_path: str) -> None:
