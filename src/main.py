@@ -24,12 +24,15 @@ def main():
     sport = ask_sport()
     logger.info(f"Selected sport: {sport}")
 
-    activity_id = ask_activity_id()
-    logger.info(f"Selected activity ID: {activity_id}")
-    logger.info("Downloading the TCX file from strava")
-    download_tcx_file(activity_id, sport)
+    file_location = ask_file_location()
 
-    file_path = ask_file_path()
+    if file_location == "Download":
+        activity_id = ask_activity_id()
+        logger.info(f"Selected activity ID: {activity_id}")
+        logger.info("Downloading the TCX file from strava")
+        download_tcx_file(activity_id, sport)
+
+    file_path = ask_file_path(file_location)
 
     if sport in ["Swim", "Other"]:
         logger.info("Formatting the TCX file to be imported to trainingpeaks")
@@ -49,6 +52,13 @@ def ask_sport() -> str:
     return questionary.select(
         "What sport do you want to export to trainingpeaks?",
         choices=["Bike", "Run", "Swim", "Other"]
+    ).ask()
+
+
+def ask_file_location() -> str:
+    return questionary.select(
+        "Do you want to download the TCX file from strava or pass the path to the file?",
+        choices=["Download", "Pass"]
     ).ask()
 
 
@@ -72,9 +82,10 @@ def download_tcx_file(activity_id: str, sport: str) -> None:
         raise ValueError("Error opening the browser") from err
 
 
-def ask_file_path() -> str:
+def ask_file_path(file_location) -> str:
+    question = "Enter the path to the TCX file:" if file_location == "Pass" else "Check if the TCX file was downloaded and then enter the path to the file:"
     return questionary.text(
-        "Check if the TCX file was downloaded and then enter the path to the file:",
+        question,
         validate=os.path.isfile
     ).ask()
 
@@ -105,7 +116,7 @@ def write_xml_file(file_path: str, xml_str: str) -> None:
         xml_file.write(xml_str)
 
 
-def validate_tcx_file(file_path: str, sport: str) -> None:
+def validate_tcx_file(file_path: str) -> None:
     xml_str = read_xml_file(file_path)
     if not xml_str:
         logger.error("The TCX file is empty.")
