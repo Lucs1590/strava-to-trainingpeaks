@@ -98,7 +98,7 @@ def format_to_swim(file_path: str) -> None:
 
 
 def read_xml_file(file_path: str) -> str:
-    with open(file_path, "r") as xml_file:
+    with open(file_path, "r", encoding='utf-8') as xml_file:
         return xml_file.read()
 
 
@@ -110,7 +110,7 @@ def modify_xml_header(xml_str: str) -> str:
 
 
 def write_xml_file(file_path: str, xml_str: str) -> None:
-    with open(file_path, "w") as xml_file:
+    with open(file_path, "w", encoding='utf-8') as xml_file:
         xml_file.write(xml_str)
 
 
@@ -135,12 +135,12 @@ def validate_tcx_file(file_path: str) -> bool:
 
 def indent_xml_file(file_path: str) -> None:
     try:
-        with open(file_path, "r") as xml_file:
+        with open(file_path, "r", encoding='utf-8') as xml_file:
             xml_content = xml_file.read()
 
         xml_dom = parseString(xml_content)
 
-        with open(file_path, "w") as xml_file:
+        with open(file_path, "w", encoding='utf-8') as xml_file:
             xml_file.write(xml_dom.toprettyxml(indent="  "))
     except Exception as err:
         logger.warning(

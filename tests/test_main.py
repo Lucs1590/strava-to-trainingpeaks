@@ -61,7 +61,7 @@ class TestMain(unittest.TestCase):
 
         write_xml_file(file_path, xml_str)
 
-        with open(file_path, "r") as xml_file:
+        with open(file_path, "r", encoding='utf-8') as xml_file:
             content = xml_file.read()
 
         self.assertEqual(content, xml_str)
@@ -97,7 +97,7 @@ class TestMain(unittest.TestCase):
         file_path = "assets/test.xml"
         indent_xml_file(file_path)
 
-        with open(file_path, "r") as xml_file:
+        with open(file_path, "r", encoding='utf-8') as xml_file:
             content = xml_file.read()
 
         self.assertIn(
