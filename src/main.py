@@ -2,7 +2,7 @@ import re
 import os
 import logging
 import webbrowser
-from xml.dom import minidom
+from defusedxml.minidom import parseString
 
 import questionary
 
@@ -138,7 +138,7 @@ def indent_xml_file(file_path: str) -> None:
         with open(file_path, "r") as xml_file:
             xml_content = xml_file.read()
 
-        xml_dom = minidom.parseString(xml_content)
+        xml_dom = parseString(xml_content)
 
         with open(file_path, "w") as xml_file:
             xml_file.write(xml_dom.toprettyxml(indent="  "))
