@@ -1,3 +1,22 @@
+## 0.2.0 (2024-04-11)
+
+### Feat
+
+- add encoding to open module
+
+### Fix
+
+- python version
+
+### Refactor
+
+- pylint advice
+- change parser
+- codefactor advice
+- boolean return
+- using path instead of name
+- remove useless imports
+
 ## 0.1.0 (2024-04-11)
 
 ### Feat
