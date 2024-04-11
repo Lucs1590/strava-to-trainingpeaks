@@ -1,10 +1,10 @@
 import re
 import os
 import logging
+import webbrowser
 from xml.dom import minidom
 
 import questionary
-import webbrowser
 
 from tcxreader.tcxreader import TCXReader
 
@@ -142,7 +142,7 @@ def indent_xml_file(file_path: str) -> None:
 
         with open(file_path, "w") as xml_file:
             xml_file.write(xml_dom.toprettyxml(indent="  "))
-    except Exception as e:
+    except Exception as err:
         logger.warning(
             "Failed to indent the XML file. The file will be saved without indentation."
         )
