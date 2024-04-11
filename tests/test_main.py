@@ -105,6 +105,15 @@ class TestMain(unittest.TestCase):
             content
         )
 
+    def test_indent_xml_file_error(self):
+        file_path = "assets/test.xml"
+
+        with patch('src.main.minidom.parseString') as mock_parseString:
+            mock_parseString.return_value = Exception("Error")
+            indent_xml_file(file_path)
+
+        self.assertTrue(mock_parseString.called)
+
 
 if __name__ == '__main__':
     unittest.main()
