@@ -1,9 +1,7 @@
 import re
 import os
-import sys
 import logging
 from xml.dom import minidom
-from typing import List
 
 import questionary
 import webbrowser
