@@ -1,3 +1,9 @@
+## 0.4.0 (2024-05-08)
+
+### Feat
+
+- get activity id based in url
+
 ## 0.3.0 (2024-04-11)
 
 ### BREAKING CHANGE
