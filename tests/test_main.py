@@ -1,6 +1,9 @@
 import os
+#import sys
 import unittest
 from unittest.mock import patch
+
+# sys.path.append(os.path.abspath(''))
 
 from src.main import (
     download_tcx_file,

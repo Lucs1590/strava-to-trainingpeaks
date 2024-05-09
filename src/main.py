@@ -62,9 +62,10 @@ def ask_file_location() -> str:
 
 
 def ask_activity_id() -> str:
-    return questionary.text(
+    activity_id = questionary.text(
         "Enter the Strava activity ID you want to export to TrainingPeaks:"
     ).ask()
+    return re.sub(r"\D", "", activity_id)
 
 
 def download_tcx_file(activity_id: str, sport: str) -> None:
