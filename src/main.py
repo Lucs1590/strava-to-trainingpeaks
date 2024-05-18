@@ -160,15 +160,7 @@ def ask_training_plan() -> str:
 
 
 def perform_llm_analysis(data: TCXReader, sport: str, plan: str) -> str:
-    df = pd.DataFrame(data.trackpoints_to_dict())
-    df.rename(
-        columns={
-            "Distance": "Distance_Meters",
-            "Speed": "Speed_Kmh"
-        }, inplace=True
-    )
-    df["Speed_Kmh"] = df["Speed_Kmh"] * 3.6
-    df["Pace"] = df["Speed_Kmh"].apply(lambda x: 60 / x if x > 0 else 0)
+    dataframe = preprocess_trackpoints_data(data)
 
     prompt = """SYSTEM: You are an AI Assistant that helps athletes to improve their performance.
     Based on the following csv data that is related to a {sport} training session, carry out an analysis highlighting positive points, where the athlete did well and where he did poorly and what he can do to improve in the next {sport}.
@@ -180,19 +172,45 @@ def perform_llm_analysis(data: TCXReader, sport: str, plan: str) -> str:
     prompt = PromptTemplate.from_template(prompt)
     prompt = prompt.format(
         sport=sport,
-        data=df.to_csv(),
+        data=dataframe.to_csv(index=False),
         plan=plan
     )
 
     openai_llm = OpenAI(
         openai_api_key=os.getenv("OPENAI_API_KEY"),
-        model_name="gpt-4o",
+        model_name="gpt-4-turbo",
         max_tokens=500
     )
-    response = openai_llm.generate(prompt)
+    response = openai_llm.invoke(prompt)
     logger.info("AI analysis completed successfully.")
     logger.info("AI response: %s", response)
     return response
+
+
+def preprocess_trackpoints_data(data):
+    df = pd.DataFrame(data.trackpoints_to_dict())
+    df.rename(
+        columns={
+            "distance": "Distance_Km",
+            "time": "Time",
+            "Speed": "Speed_Kmh"
+        }, inplace=True
+    )
+    df["Time"] = df["Time"].dt.strftime("%H:%M:%S")
+    df["Distance_Km"] = round(df["Distance_Km"] / 1000, 2)
+    df["Speed_Kmh"] = df["Speed_Kmh"] * 3.6
+    df["Pace"] = round(
+        df["Speed_Kmh"].apply(lambda x: 60 / x if x > 0 else 0),
+        2
+    )
+    if df["cadence"].isnull().sum() >= len(df) / 2:
+        df.drop(columns=["cadence"], inplace=True)
+
+    df = df.drop_duplicates()
+    df = df.reset_index(drop=True)
+    df = df.dropna()
+
+    return df
 
 
 def indent_xml_file(file_path: str) -> None:
