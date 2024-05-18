@@ -170,16 +170,19 @@ def perform_llm_analysis(data: TCXReader, sport: str, plan: str) -> str:
     df["Pace"] = df["Speed_Kmh"].apply(lambda x: 60 / x if x > 0 else 0)
 
     prompt = """SYSTEM: You are an AI Assistant that helps athletes to improve their performance.
-    Based on the following data that is related to a {sport} training session, carry out an analysis highlighting positive points, where the athlete did well and where he did poorly and what he can do to improve in the next {sport}.
-    data: {data}
+    Based on the following csv data that is related to a {sport} training session, carry out an analysis highlighting positive points, where the athlete did well and where he did poorly and what he can do to improve in the next {sport}.
+    <csv_data>
+    {data}
+    </csv_data>
     """
     prompt += "plan: {plan}" if plan else ""
     prompt = PromptTemplate.from_template(prompt)
     prompt = prompt.format(
         sport=sport,
-        data=df.to_string(),
+        data=df.to_csv(),
         plan=plan
     )
+
 
 
 def indent_xml_file(file_path: str) -> None:
