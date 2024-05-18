@@ -9,8 +9,10 @@ from defusedxml.minidom import parseString
 import questionary
 import pandas as pd
 
+from dotenv import load_dotenv
 from tcxreader.tcxreader import TCXReader
 
+load_dotenv()
 logger = logging.getLogger()
 
 if not logger.handlers:
