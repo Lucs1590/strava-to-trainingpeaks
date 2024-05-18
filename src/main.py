@@ -3,9 +3,11 @@ import os
 import logging
 import webbrowser
 
+from typing import Tuple
 from defusedxml.minidom import parseString
 
 import questionary
+import pandas as pd
 
 from tcxreader.tcxreader import TCXReader
 
@@ -38,7 +40,11 @@ def main():
         format_to_swim(file_path)
     elif sport in ["Bike", "Run"]:
         logger.info("Validating the TCX file")
-        validate_tcx_file(file_path)
+        _, tcx_data = validate_tcx_file(file_path)
+        if ask_llm_analysis():
+            plan = ask_training_plan()
+            logger.info("Performing LLM analysis")
+            perform_llm_analysis(tcx_data, sport, plan)
     else:
         logger.error("Invalid sport selected")
         raise ValueError("Invalid sport selected")
@@ -116,7 +122,7 @@ def write_xml_file(file_path: str, xml_str: str) -> None:
         xml_file.write(xml_str)
 
 
-def validate_tcx_file(file_path: str) -> bool:
+def validate_tcx_file(file_path: str) -> Tuple[bool, TCXReader]:
     xml_str = read_xml_file(file_path)
     if not xml_str:
         logger.error("The TCX file is empty.")
@@ -129,10 +135,37 @@ def validate_tcx_file(file_path: str) -> bool:
             "The TCX file is valid. You covered a significant distance in this activity, with %d meters.",
             data.distance
         )
-        return True
+        return True, data
     except Exception as err:
         logger.error("Invalid TCX file.")
         raise ValueError(f"Error reading the TCX file: {err}") from err
+
+
+def ask_llm_analysis() -> str:
+    return questionary.confirm(
+        "Do you want to perform AI analysis?",
+        default=False
+    ).ask()
+
+
+def ask_training_plan() -> str:
+    return questionary.text(
+        "Was there anything planned for this training?"
+    ).ask()
+
+
+def perform_llm_analysis(data: TCXReader, sport: str, plan: str) -> str:
+    df = pd.DataFrame(data.trackpoints_to_dict())
+    df.rename(
+        columns={
+            "Distance": "Distance_Meters",
+            "Speed": "Speed_Kmh"
+        }, inplace=True
+    )
+    df["Speed_Kmh"] = df["Speed_Kmh"] * 3.6
+    df["Pace"] = df["Speed_Kmh"].apply(lambda x: 60 / x if x > 0 else 0)
+
+
 
 
 def indent_xml_file(file_path: str) -> None:
