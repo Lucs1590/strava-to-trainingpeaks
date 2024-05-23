@@ -213,10 +213,10 @@ def preprocess_trackpoints_data(data):
     df = df.reset_index(drop=True)
     df = df.dropna()
 
-    if df.shape[0] > 1000:
+    if df.shape[0] > 4000:
+        df = run_euclidean_dist_deletion(df, 0.50)
+    elif df.shape[0] > 1000:
         df = run_euclidean_dist_deletion(df, 0.35)
-    elif df.shape[0] > 500:
-        df = run_euclidean_dist_deletion(df, 0.20)
     else:
         df = run_euclidean_dist_deletion(df, 0.10)
 
