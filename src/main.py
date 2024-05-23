@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 
 from dotenv import load_dotenv
-from sklearn import preprocessing
+from scipy.spatial.distance import squareform, pdist
 from langchain_openai import OpenAI
 from tcxreader.tcxreader import TCXReader
 from langchain_core.prompts.prompt import PromptTemplate
@@ -224,31 +224,17 @@ def preprocess_trackpoints_data(data):
 
 
 def run_euclidean_dist_deletion(dataframe: pd.DataFrame, percentage: float) -> pd.DataFrame:
-    scaler = preprocessing.MinMaxScaler()
+    dists = pdist(dataframe, metric='euclidean')
+    dists = squareform(dists)
+    np.fill_diagonal(dists, np.inf)
 
-    data = dataframe.to_numpy()
-    data = scaler.fit_transform(data)
-    data = np.array(data)
-
-    euclidean_dist = np.zeros((len(data), len(data)))
-    for i in range(len(data)):
-        for j in range(len(data)):
-            if i != j:
-                euclidean_dist[i][j] = np.linalg.norm(data[i] - data[j])
-
-    total_rows = percentage * len(data)
-    for _ in range(int(total_rows)):
-        min_dist = np.min(euclidean_dist[np.nonzero(euclidean_dist)])
-        row, col = np.where(euclidean_dist == min_dist)
-        euclidean_dist[row[0], :] = 0
-        euclidean_dist[:, col[0]] = 0
-
-        if row[0] <= dataframe.shape[0]:
-            dataframe = dataframe.drop(dataframe.index[row[0]])
-        elif col[0] <= dataframe.shape[0]:
-            dataframe = dataframe.drop(dataframe.index[col[0]])
-        else:
-            pass
+    total_rows = int(percentage * len(dataframe))
+    for _ in range(total_rows):
+        min_idx = np.argmin(dists)
+        row, col = np.unravel_index(min_idx, dists.shape)
+        dists[row, :] = np.inf
+        dists[:, col] = np.inf
+        dataframe = dataframe.drop(row)
 
     return dataframe
 
