@@ -4,12 +4,15 @@ import logging
 import webbrowser
 
 from typing import Tuple
+from datetime import datetime
 from defusedxml.minidom import parseString
 
 import questionary
+import numpy as np
 import pandas as pd
 
 from dotenv import load_dotenv
+from sklearn import preprocessing
 from langchain_openai import OpenAI
 from tcxreader.tcxreader import TCXReader
 from langchain_core.prompts.prompt import PromptTemplate
@@ -196,7 +199,7 @@ def preprocess_trackpoints_data(data):
             "Speed": "Speed_Kmh"
         }, inplace=True
     )
-    df["Time"] = df["Time"].dt.strftime("%H:%M:%S")
+    df["Time"] = df["Time"].apply(lambda x: x.value / 10**9)
     df["Distance_Km"] = round(df["Distance_Km"] / 1000, 2)
     df["Speed_Kmh"] = df["Speed_Kmh"] * 3.6
     df["Pace"] = round(
@@ -210,7 +213,44 @@ def preprocess_trackpoints_data(data):
     df = df.reset_index(drop=True)
     df = df.dropna()
 
+    if df.shape[0] > 1000:
+        df = run_euclidean_dist_deletion(df, 0.35)
+    elif df.shape[0] > 500:
+        df = run_euclidean_dist_deletion(df, 0.20)
+    else:
+        df = run_euclidean_dist_deletion(df, 0.10)
+
     return df
+
+
+def run_euclidean_dist_deletion(dataframe: pd.DataFrame, percentage: float) -> pd.DataFrame:
+    scaler = preprocessing.MinMaxScaler()
+
+    data = dataframe.to_numpy()
+    data = scaler.fit_transform(data)
+    data = np.array(data)
+
+    euclidean_dist = np.zeros((len(data), len(data)))
+    for i in range(len(data)):
+        for j in range(len(data)):
+            if i != j:
+                euclidean_dist[i][j] = np.linalg.norm(data[i] - data[j])
+
+    total_rows = percentage * len(data)
+    for _ in range(int(total_rows)):
+        min_dist = np.min(euclidean_dist[np.nonzero(euclidean_dist)])
+        row, col = np.where(euclidean_dist == min_dist)
+        euclidean_dist[row[0], :] = 0
+        euclidean_dist[:, col[0]] = 0
+
+        if row[0] <= dataframe.shape[0]:
+            dataframe = dataframe.drop(dataframe.index[row[0]])
+        elif col[0] <= dataframe.shape[0]:
+            dataframe = dataframe.drop(dataframe.index[col[0]])
+        else:
+            pass
+
+    return dataframe
 
 
 def indent_xml_file(file_path: str) -> None:
