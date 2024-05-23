@@ -13,7 +13,7 @@ import pandas as pd
 
 from dotenv import load_dotenv
 from scipy.spatial.distance import squareform, pdist
-from langchain_openai import OpenAI
+from langchain_openai import ChatOpenAI
 from tcxreader.tcxreader import TCXReader
 from langchain_core.prompts.prompt import PromptTemplate
 
@@ -179,14 +179,14 @@ def perform_llm_analysis(data: TCXReader, sport: str, plan: str) -> str:
         plan=plan
     )
 
-    openai_llm = OpenAI(
+    openai_llm = ChatOpenAI(
         openai_api_key=os.getenv("OPENAI_API_KEY"),
         model_name="gpt-4-turbo",
         max_tokens=500
     )
     response = openai_llm.invoke(prompt)
     logger.info("AI analysis completed successfully.")
-    logger.info("AI response: %s", response)
+    logger.info("\nAI response: %s \n", response.content)
     return response
 
 
