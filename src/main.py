@@ -201,38 +201,38 @@ def perform_llm_analysis(data: TCXReader, sport: str, plan: str) -> str:
 
 
 def preprocess_trackpoints_data(data):
-    df = pd.DataFrame(data.trackpoints_to_dict())
-    df.rename(
+    dataframe = pd.DataFrame(data.trackpoints_to_dict())
+    dataframe.rename(
         columns={
             "distance": "Distance_Km",
             "time": "Time",
             "Speed": "Speed_Kmh"
         }, inplace=True
     )
-    df["Time"] = df["Time"].apply(lambda x: x.value / 10**9)
-    df["Distance_Km"] = round(df["Distance_Km"] / 1000, 2)
-    df["Speed_Kmh"] = df["Speed_Kmh"] * 3.6
-    df["Pace"] = round(
-        df["Speed_Kmh"].apply(lambda x: 60 / x if x > 0 else 0),
+    dataframe["Time"] = dataframe["Time"].apply(lambda x: x.value / 10**9)
+    dataframe["Distance_Km"] = round(dataframe["Distance_Km"] / 1000, 2)
+    dataframe["Speed_Kmh"] = dataframe["Speed_Kmh"] * 3.6
+    dataframe["Pace"] = round(
+        dataframe["Speed_Kmh"].apply(lambda x: 60 / x if x > 0 else 0),
         2
     )
-    if df["cadence"].isnull().sum() >= len(df) / 2:
-        df.drop(columns=["cadence"], inplace=True)
+    if dataframe["cadence"].isnull().sum() >= len(dataframe) / 2:
+        dataframe.drop(columns=["cadence"], inplace=True)
 
-    df = df.drop_duplicates()
-    df = df.reset_index(drop=True)
-    df = df.dropna()
+    dataframe = dataframe.drop_duplicates()
+    dataframe = dataframe.reset_index(drop=True)
+    dataframe = dataframe.dropna()
 
-    if df.shape[0] > 4000:
-        df = run_euclidean_dist_deletion(df, 0.50)
-    elif df.shape[0] > 1000:
-        df = run_euclidean_dist_deletion(df, 0.35)
+    if dataframe.shape[0] > 4000:
+        dataframe = run_euclidean_dist_deletion(dataframe, 0.50)
+    elif dataframe.shape[0] > 1000:
+        dataframe = run_euclidean_dist_deletion(dataframe, 0.35)
     else:
-        df = run_euclidean_dist_deletion(df, 0.10)
+        dataframe = run_euclidean_dist_deletion(dataframe, 0.10)
 
-    df["Time"] = pd.to_datetime(df["Time"], unit='s').dt.strftime('%H:%M:%S')
+    dataframe["Time"] = pd.to_datetime(dataframe["Time"], unit='s').dt.strftime('%H:%M:%S')
 
-    return df
+    return dataframe
 
 
 def run_euclidean_dist_deletion(dataframe: pd.DataFrame, percentage: float) -> pd.DataFrame:
