@@ -4,7 +4,6 @@ import logging
 import webbrowser
 
 from typing import Tuple
-from datetime import datetime
 from defusedxml.minidom import parseString
 
 import questionary
