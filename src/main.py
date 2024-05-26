@@ -99,11 +99,18 @@ def download_tcx_file(activity_id: str, sport: str) -> None:
         raise ValueError("Error opening the browser") from err
 
 
-def ask_file_path(file_location) -> str:
-    question = "Enter the path to the TCX file:" if file_location == "Provide path" else "Check if the TCX was downloaded and validate the file:"
+def ask_file_path(file_location: str) -> str:
+    if file_location == "Provide path":
+        question = "Enter the path to the TCX file:"
+        def validation(path): return os.path.isfile(path)
+    else:
+        question = "Check if the TCX was downloaded and validate the file:"
+        def validation(path): return os.path.isfile(path) or path == ''
+
     return questionary.path(
         question,
-        validate=lambda path: path == '' or os.path.isfile(path),
+        validate=validation,
+        only_directories=False
     ).ask()
 
 
