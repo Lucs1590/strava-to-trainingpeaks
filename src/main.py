@@ -230,6 +230,8 @@ def preprocess_trackpoints_data(data):
     else:
         df = run_euclidean_dist_deletion(df, 0.10)
 
+    df["Time"] = pd.to_datetime(df["Time"], unit='s').dt.strftime('%H:%M:%S')
+
     return df
 
 
@@ -246,6 +248,7 @@ def run_euclidean_dist_deletion(dataframe: pd.DataFrame, percentage: float) -> p
         dists[:, col] = np.inf
         dataframe = dataframe.drop(row)
 
+    dataframe = dataframe.reset_index(drop=True)
     return dataframe
 
 
