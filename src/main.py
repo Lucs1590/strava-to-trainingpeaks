@@ -101,10 +101,14 @@ def download_tcx_file(activity_id: str, sport: str) -> None:
 def ask_file_path(file_location: str) -> str:
     if file_location == "Provide path":
         question = "Enter the path to the TCX file:"
-        def validation(path): return os.path.isfile(path)
+
+        def validation(path):
+            return os.path.isfile(path)
     else:
         question = "Check if the TCX was downloaded and validate the file:"
-        def validation(path): return os.path.isfile(path) or path == ''
+
+        def validation(path):
+            return os.path.isfile(path) or path == ''
 
     return questionary.path(
         question,
@@ -229,7 +233,8 @@ def preprocess_trackpoints_data(data):
     else:
         dataframe = run_euclidean_dist_deletion(dataframe, 0.10)
 
-    dataframe["Time"] = pd.to_datetime(dataframe["Time"], unit='s').dt.strftime('%H:%M:%S')
+    dataframe["Time"] = pd.to_datetime(
+        dataframe["Time"], unit='s').dt.strftime('%H:%M:%S')
 
     return dataframe
 
