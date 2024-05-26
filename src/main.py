@@ -43,19 +43,22 @@ def main():
 
     file_path = ask_file_path(file_location)
 
-    if sport in ["Swim", "Other"]:
-        logger.info("Formatting the TCX file to be imported to TrainingPeaks")
-        format_to_swim(file_path)
-    elif sport in ["Bike", "Run"]:
-        logger.info("Validating the TCX file")
-        _, tcx_data = validate_tcx_file(file_path)
-        if ask_llm_analysis():
-            plan = ask_training_plan()
-            logger.info("Performing LLM analysis")
-            perform_llm_analysis(tcx_data, sport, plan)
-    else:
-        logger.error("Invalid sport selected")
-        raise ValueError("Invalid sport selected")
+    if file_path:
+        if sport in ["Swim", "Other"]:
+            logger.info(
+                "Formatting the TCX file to be imported to TrainingPeaks"
+            )
+            format_to_swim(file_path)
+        elif sport in ["Bike", "Run"]:
+            logger.info("Validating the TCX file")
+            _, tcx_data = validate_tcx_file(file_path)
+            if ask_llm_analysis():
+                plan = ask_training_plan()
+                logger.info("Performing LLM analysis")
+                perform_llm_analysis(tcx_data, sport, plan)
+        else:
+            logger.error("Invalid sport selected")
+            raise ValueError("Invalid sport selected")
 
     indent_xml_file(file_path)
     logger.info("Process completed successfully!")
@@ -97,10 +100,10 @@ def download_tcx_file(activity_id: str, sport: str) -> None:
 
 
 def ask_file_path(file_location) -> str:
-    question = "Enter the path to the TCX file:" if file_location == "Provide path" else "Check if the TCX file was downloaded and then enter the path to the file:"
+    question = "Enter the path to the TCX file:" if file_location == "Provide path" else "Check if the TCX was downloaded and validate the file:"
     return questionary.path(
         question,
-        validate=os.path.isfile
+        validate=lambda path: path == '' or os.path.isfile(path),
     ).ask()
 
 
