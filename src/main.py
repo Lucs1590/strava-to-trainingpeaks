@@ -194,8 +194,10 @@ def perform_llm_analysis(data: TCXReader, sport: str, plan: str) -> str:
 
     openai_llm = ChatOpenAI(
         openai_api_key=os.getenv("OPENAI_API_KEY"),
-        model_name="gpt-4-turbo",
-        max_tokens=500
+        model_name="gpt-4o",
+        max_tokens=1500,
+        temperature=0.6,
+        max_retries=5
     )
     response = openai_llm.invoke(prompt)
     logger.info("AI analysis completed successfully.")
