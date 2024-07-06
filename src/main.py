@@ -10,11 +10,12 @@ import questionary
 import numpy as np
 import pandas as pd
 
+from tqdm import tqdm
 from dotenv import load_dotenv
-from scipy.spatial.distance import squareform, pdist
 from langchain_openai import ChatOpenAI
-from tcxreader.tcxreader import TCXReader
 from langchain_core.prompts.prompt import PromptTemplate
+from scipy.spatial.distance import squareform, pdist
+from tcxreader.tcxreader import TCXReader
 
 
 load_dotenv()
@@ -229,14 +230,16 @@ def preprocess_trackpoints_data(data):
     dataframe = dataframe.dropna()
 
     if dataframe.shape[0] > 4000:
-        dataframe = run_euclidean_dist_deletion(dataframe, 0.50)
+        dataframe = run_euclidean_dist_deletion(dataframe, 0.55)
     elif dataframe.shape[0] > 1000:
         dataframe = run_euclidean_dist_deletion(dataframe, 0.35)
     else:
         dataframe = run_euclidean_dist_deletion(dataframe, 0.10)
 
     dataframe["Time"] = pd.to_datetime(
-        dataframe["Time"], unit='s').dt.strftime('%H:%M:%S')
+        dataframe["Time"],
+        unit='s'
+    ).dt.strftime('%H:%M:%S')
 
     return dataframe
 
@@ -247,12 +250,14 @@ def run_euclidean_dist_deletion(dataframe: pd.DataFrame, percentage: float) -> p
     np.fill_diagonal(dists, np.inf)
 
     total_rows = int(percentage * len(dataframe))
-    for _ in range(total_rows):
-        min_idx = np.argmin(dists)
-        row, col = np.unravel_index(min_idx, dists.shape)
-        dists[row, :] = np.inf
-        dists[:, col] = np.inf
-        dataframe = dataframe.drop(row)
+    with tqdm(total=total_rows, desc="Removing similar points") as pbar:
+        for _ in range(total_rows):
+            min_idx = np.argmin(dists)
+            row, col = np.unravel_index(min_idx, dists.shape)
+            dists[row, :] = np.inf
+            dists[:, col] = np.inf
+            dataframe = dataframe.drop(row)
+            pbar.update(1)
 
     dataframe = dataframe.reset_index(drop=True)
     return dataframe
