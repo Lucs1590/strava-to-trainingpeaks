@@ -202,7 +202,7 @@ def perform_llm_analysis(data: TCXReader, sport: str, plan: str) -> str:
     )
     response = openai_llm.invoke(prompt)
     logger.info("AI analysis completed successfully.")
-    logger.info("\nAI response: %s \n", response.content)
+    logger.info("\nAI response:\n %s \n", response.content)
     return response.content
 
 
