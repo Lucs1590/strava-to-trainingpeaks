@@ -17,7 +17,8 @@ from src.main import (
     ask_sport,
     ask_file_location,
     ask_activity_id,
-    ask_file_path
+    ask_file_path,
+    get_latest_download
 )
 
 
@@ -258,6 +259,14 @@ class TestMain(unittest.TestCase):
             )
             self.assertEqual(result, "assets/downloaded.tcx")
 
+    def test_get_latest_downloads_without_ask(self):
+        pass
+
+    def test_get_latest_downloads_with_ask(self):
+        pass
+
+    def test_get_latest_downloads_error(self):
+        pass
 
 if __name__ == '__main__':
     unittest.main()
