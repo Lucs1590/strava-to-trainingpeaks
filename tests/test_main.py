@@ -33,7 +33,8 @@ from src.main import (
 class TestMain(unittest.TestCase):
     def setUp(self) -> None:
         tcx_reader = TCXReader()
-        self.example_data = tcx_reader.read("assets/run.tcx")
+        self.running_example_data = tcx_reader.read("assets/run.tcx")
+        self.biking_example_data = tcx_reader.read("assets/bike.tcx")
 
     @patch('src.main.webbrowser.open')
     def test_download_tcx_file(self, mock_open):
@@ -326,17 +327,22 @@ class TestMain(unittest.TestCase):
     def test_perform_llm_analysis(self, mock_chat):
         mock_invoke = mock_chat.return_value.invoke.return_value
         mock_invoke.content = "Training Plan"
-        tcx_data = self.example_data
+        tcx_data = self.running_example_data
         sport = "Run"
         plan = "Training Plan"
 
         result = perform_llm_analysis(tcx_data, sport, plan)
         self.assertEqual(result, "Training Plan")
 
-    def test_preprocess_trackpoints_data(self):
-        tcx_data = self.example_data
+    def test_preprocess_running_trackpoints_data(self):
+        tcx_data = self.running_example_data
         result = preprocess_trackpoints_data(tcx_data)
         self.assertEqual(len(result), 1646)
+
+    def test_preprocess_biking_trackpoints_data(self):
+        tcx_data = self.biking_example_data
+        result = preprocess_trackpoints_data(tcx_data)
+        self.assertEqual(len(result), 2028)
 
     def test_run_euclidean_distance(self):
         dataframe = DataFrame({
