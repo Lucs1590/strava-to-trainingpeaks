@@ -103,6 +103,7 @@ def download_tcx_file(activity_id: str, sport: str) -> None:
         logger.error("Failed to download the TCX file from Strava.")
         raise ValueError("Error opening the browser") from err
 
+
 def get_latest_download() -> str:
     download_folder = os.path.expanduser("~/Downloads")
     try:
