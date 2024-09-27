@@ -97,7 +97,12 @@ def get_latest_download() -> str:
         return latest_file
     else:
         logger.error("No TCX file found in the Downloads folder.")
-        raise FileNotFoundError("No TCX file found in the Downloads folder.")
+        try:
+            latest_file = ask_file_path("Download")
+            return latest_file
+        except Exception as err:
+            logger.error("Failed to get the file path.")
+            raise ValueError("Error getting the file path") from err
 
 
 def ask_file_path(file_location) -> str:
