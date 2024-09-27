@@ -131,27 +131,27 @@ class TestMain(unittest.TestCase):
 
         self.assertTrue(mock_parse_string.called)
 
+    @patch('src.main.get_latest_download')
     @patch('src.main.ask_sport')
     @patch('src.main.ask_file_location')
     @patch('src.main.ask_activity_id')
     @patch('src.main.download_tcx_file')
-    @patch('src.main.ask_file_path')
     @patch('src.main.format_to_swim')
     @patch('src.main.validate_tcx_file')
     @patch('src.main.indent_xml_file')
-    def test_main(self, mock_indent, mock_validate, mock_format, mock_ask_path, mock_download, mock_ask_id,
-                  mock_ask_location, mock_ask_sport):
+    def test_main(self, mock_indent, mock_validate, mock_format, mock_download, mock_ask_id,
+                  mock_ask_location, mock_ask_sport, mock_latest_download):
         mock_ask_sport.return_value = "Swim"
         mock_ask_location.return_value = "Download"
         mock_ask_id.return_value = "12345"
-        mock_ask_path.return_value = "assets/swim.tcx"
+        mock_latest_download.return_value = "assets/swim.tcx"
 
         main()
 
         mock_ask_sport.assert_called_once()
         mock_ask_location.assert_called_once()
         mock_ask_id.assert_called_once()
-        mock_ask_path.assert_called_once()
+        mock_latest_download.assert_called_once()
         mock_download.assert_called_once_with("12345", "Swim")
         mock_format.assert_called_once_with("assets/swim.tcx")
         mock_validate.assert_not_called()
