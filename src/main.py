@@ -1,5 +1,6 @@
 import re
 import os
+import time
 import logging
 import webbrowser
 
@@ -41,7 +42,13 @@ def main():
         logger.info("Downloading the TCX file from Strava")
         download_tcx_file(activity_id, sport)
 
-    file_path = ask_file_path(file_location)
+        time.sleep(3)
+        file_path = get_latest_download()
+        logger.info(
+            f"Automatically detected downloaded file path: {file_path}"
+        )
+    else:
+        file_path = ask_file_path(file_location)
 
     if file_path:
         if sport in ["Swim", "Other"]:
@@ -93,10 +100,25 @@ def download_tcx_file(activity_id: str, sport: str) -> None:
     try:
         webbrowser.open(url)
     except Exception as err:
-        logger.error(
-            "Failed to download the TCX file from Strava."
-        )
+        logger.error("Failed to download the TCX file from Strava.")
         raise ValueError("Error opening the browser") from err
+
+def get_latest_download() -> str:
+    download_folder = os.path.expanduser("~/Downloads")
+    try:
+        files = os.listdir(download_folder)
+    except FileNotFoundError:
+        files = []
+    paths = [os.path.join(download_folder, f)
+             for f in files if f.endswith('.tcx')]
+
+    if paths:
+        latest_file = max(paths, key=os.path.getmtime)
+    else:
+        logger.error("No TCX file found in the Downloads folder.")
+        latest_file = ask_file_path("Download")
+
+    return latest_file
 
 
 def ask_file_path(file_location: str) -> str:
