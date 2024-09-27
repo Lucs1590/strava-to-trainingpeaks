@@ -5,7 +5,6 @@ import logging
 import webbrowser
 
 from typing import Tuple
-from defusedxml.minidom import parseString
 
 import questionary
 import numpy as np
@@ -15,6 +14,7 @@ from tqdm import tqdm
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts.prompt import PromptTemplate
+from defusedxml.minidom import parseString
 from scipy.spatial.distance import squareform, pdist
 from tcxreader.tcxreader import TCXReader
 
