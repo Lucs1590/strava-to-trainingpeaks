@@ -97,6 +97,7 @@ class TestMain(unittest.TestCase):
         file_path = "assets/bike.tcx"
         result = validate_tcx_file(file_path)
         self.assertTrue(result)
+        self.assertEqual(len(result), 2)
 
     def test_validate_tcx_file_error(self):
         file_path = "assets/swim.tcx"
@@ -186,6 +187,9 @@ class TestMain(unittest.TestCase):
         mock_validate.assert_not_called()
         mock_indent.assert_not_called()
 
+    @patch('src.main.ask_training_plan')
+    @patch('src.main.perform_llm_analysis')
+    @patch('src.main.ask_llm_analysis')
     @patch('src.main.ask_sport')
     @patch('src.main.ask_file_location')
     @patch('src.main.ask_activity_id')
@@ -195,10 +199,15 @@ class TestMain(unittest.TestCase):
     @patch('src.main.validate_tcx_file')
     @patch('src.main.indent_xml_file')
     def test_main_bike_sport(self, mock_indent, mock_validate, mock_format, mock_ask_path, mock_download,
-                             mock_ask_id, mock_ask_location, mock_ask_sport):
+                             mock_ask_id, mock_ask_location, mock_ask_sport, mock_llm_analysis, mock_perform_llm,
+                             mock_training_plan):
         mock_ask_sport.return_value = "Bike"
         mock_ask_location.return_value = "Local"
         mock_ask_path.return_value = "assets/bike.tcx"
+        mock_llm_analysis.return_value = True
+        mock_validate.return_value = True, "TCX Data"
+        mock_perform_llm.return_value = "Training Plan"
+        mock_training_plan.return_value = ""
 
         main()
 
@@ -208,6 +217,8 @@ class TestMain(unittest.TestCase):
         mock_ask_path.assert_called_once()
         mock_download.assert_not_called()
         mock_format.assert_not_called()
+        mock_llm_analysis.assert_called_once()
+        mock_perform_llm.assert_called_once()
         mock_validate.assert_called_once_with("assets/bike.tcx")
         mock_indent.assert_called_once_with("assets/bike.tcx")
 
