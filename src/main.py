@@ -88,7 +88,10 @@ def download_tcx_file(activity_id: str, sport: str) -> None:
 
 def get_latest_download() -> str:
     download_folder = os.path.expanduser("~/Downloads")
-    files = os.listdir(download_folder)
+    try:
+        files = os.listdir(download_folder)
+    except FileNotFoundError:
+        files = []
     paths = [os.path.join(download_folder, f)
              for f in files if f.endswith('.tcx')]
 
@@ -96,11 +99,7 @@ def get_latest_download() -> str:
         latest_file = max(paths, key=os.path.getmtime)
     else:
         logger.error("No TCX file found in the Downloads folder.")
-        try:
-            latest_file = ask_file_path("Download")
-        except Exception as err:
-            logger.error("Failed to get the file path.")
-            raise ValueError("Error getting the file path") from err
+        latest_file = ask_file_path("Download")
 
     return latest_file
 
