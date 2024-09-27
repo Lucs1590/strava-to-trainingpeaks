@@ -94,7 +94,8 @@ def ask_activity_id() -> str:
 
 def download_tcx_file(activity_id: str, sport: str) -> None:
     if sport in ["Swim", "Other"]:
-        url = f"https://www.strava.com/activities/{activity_id}/export_original"
+        url = f"https://www.strava.com/activities/{
+            activity_id}/export_original"
     else:
         url = f"https://www.strava.com/activities/{activity_id}/export_tcx"
     try:
@@ -125,20 +126,18 @@ def get_latest_download() -> str:
 def ask_file_path(file_location: str) -> str:
     if file_location == "Provide path":
         question = "Enter the path to the TCX file:"
-
-        def validation(path):
-            return os.path.isfile(path)
     else:
         question = "Check if the TCX was downloaded and validate the file:"
-
-        def validation(path):
-            return os.path.isfile(path) or path == ''
 
     return questionary.path(
         question,
         validate=validation,
         only_directories=False
     ).ask()
+
+
+def validation(path: str) -> bool:
+    return os.path.isfile(path)
 
 
 def format_to_swim(file_path: str) -> None:
