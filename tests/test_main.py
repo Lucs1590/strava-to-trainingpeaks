@@ -19,7 +19,9 @@ from src.main import (
     ask_activity_id,
     ask_file_path,
     get_latest_download,
-    validation
+    validation,
+    ask_training_plan,
+    ask_llm_analysis
 )
 
 
@@ -294,6 +296,25 @@ class TestMain(unittest.TestCase):
         result = validation(file_path)
 
         self.assertTrue(result)
+
+    def test_ask_training_plan(self):
+        with patch('src.main.questionary.text') as mock_text:
+            mock_text.return_value.ask.return_value = ""
+            result = ask_training_plan()
+            mock_text.assert_called_once_with(
+                "Was there anything planned for this training?"
+            )
+            self.assertEqual(result, "")
+
+    def test_ask_llm_analysis(self):
+        with patch('src.main.questionary.confirm') as mock_confirm:
+            mock_confirm.return_value.ask.return_value = True
+            result = ask_llm_analysis()
+            mock_confirm.assert_called_once_with(
+                "Do you want to perform AI analysis?",
+                default=False
+            )
+            self.assertTrue(result)
 
 
 if __name__ == '__main__':
