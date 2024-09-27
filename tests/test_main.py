@@ -2,6 +2,8 @@ import os
 import sys
 import unittest
 from unittest.mock import patch
+from tcxreader.tcxreader import TCXReader
+from pandas import DataFrame
 
 sys.path.append(os.path.abspath(''))
 
@@ -21,13 +23,17 @@ from src.main import (
     get_latest_download,
     validation,
     ask_training_plan,
-    ask_llm_analysis
+    ask_llm_analysis,
+    perform_llm_analysis,
+    preprocess_trackpoints_data,
+    run_euclidean_dist_deletion
 )
 
 
 class TestMain(unittest.TestCase):
     def setUp(self) -> None:
-        pass
+        tcx_reader = TCXReader()
+        self.example_data = tcx_reader.read("assets/run.tcx")
 
     @patch('src.main.webbrowser.open')
     def test_download_tcx_file(self, mock_open):
@@ -315,6 +321,30 @@ class TestMain(unittest.TestCase):
                 default=False
             )
             self.assertTrue(result)
+
+    @patch('src.main.ChatOpenAI')
+    def test_perform_llm_analysis(self, mock_chat):
+        mock_invoke = mock_chat.return_value.invoke.return_value
+        mock_invoke.content = "Training Plan"
+        tcx_data = self.example_data
+        sport = "Run"
+        plan = "Training Plan"
+
+        result = perform_llm_analysis(tcx_data, sport, plan)
+        self.assertEqual(result, "Training Plan")
+
+    def test_preprocess_trackpoints_data(self):
+        tcx_data = self.example_data
+        result = preprocess_trackpoints_data(tcx_data)
+        self.assertEqual(len(result), 1646)
+
+    def test_run_euclidean_distance(self):
+        dataframe = DataFrame({
+            'latitude': [1, 2, 3, 3.5, 4, 5, 6, 6.5, 7, 8, 9],
+            'longitude': [1, 2, 3, 3.5, 4, 5, 6, 6.5, 7, 8, 9]
+        })
+        result = run_euclidean_dist_deletion(dataframe, 0.1)
+        self.assertEqual(len(result), 10)
 
 
 if __name__ == '__main__':
