@@ -1,7 +1,10 @@
 import os
-#import sys
+# import sys
 import unittest
+
 from unittest.mock import patch
+from pandas import DataFrame
+from tcxreader.tcxreader import TCXReader
 
 # sys.path.append(os.path.abspath(''))
 
@@ -18,13 +21,21 @@ from src.main import (
     ask_file_location,
     ask_activity_id,
     ask_file_path,
-    get_latest_download
+    get_latest_download,
+    validation,
+    ask_training_plan,
+    ask_llm_analysis,
+    perform_llm_analysis,
+    preprocess_trackpoints_data,
+    run_euclidean_dist_deletion
 )
 
 
 class TestMain(unittest.TestCase):
     def setUp(self) -> None:
-        pass
+        tcx_reader = TCXReader()
+        self.running_example_data = tcx_reader.read("assets/run.tcx")
+        self.biking_example_data = tcx_reader.read("assets/bike.tcx")
 
     @patch('src.main.webbrowser.open')
     def test_download_tcx_file(self, mock_open):
@@ -96,6 +107,7 @@ class TestMain(unittest.TestCase):
         file_path = "assets/bike.tcx"
         result = validate_tcx_file(file_path)
         self.assertTrue(result)
+        self.assertEqual(len(result), 2)
 
     def test_validate_tcx_file_error(self):
         file_path = "assets/swim.tcx"
@@ -185,6 +197,9 @@ class TestMain(unittest.TestCase):
         mock_validate.assert_not_called()
         mock_indent.assert_not_called()
 
+    @patch('src.main.ask_training_plan')
+    @patch('src.main.perform_llm_analysis')
+    @patch('src.main.ask_llm_analysis')
     @patch('src.main.ask_sport')
     @patch('src.main.ask_file_location')
     @patch('src.main.ask_activity_id')
@@ -194,10 +209,15 @@ class TestMain(unittest.TestCase):
     @patch('src.main.validate_tcx_file')
     @patch('src.main.indent_xml_file')
     def test_main_bike_sport(self, mock_indent, mock_validate, mock_format, mock_ask_path, mock_download,
-                             mock_ask_id, mock_ask_location, mock_ask_sport):
+                             mock_ask_id, mock_ask_location, mock_ask_sport, mock_llm_analysis, mock_perform_llm,
+                             mock_training_plan):
         mock_ask_sport.return_value = "Bike"
         mock_ask_location.return_value = "Local"
         mock_ask_path.return_value = "assets/bike.tcx"
+        mock_llm_analysis.return_value = True
+        mock_validate.return_value = True, "TCX Data"
+        mock_perform_llm.return_value = "Training Plan"
+        mock_training_plan.return_value = ""
 
         main()
 
@@ -207,6 +227,8 @@ class TestMain(unittest.TestCase):
         mock_ask_path.assert_called_once()
         mock_download.assert_not_called()
         mock_format.assert_not_called()
+        mock_llm_analysis.assert_called_once()
+        mock_perform_llm.assert_called_once()
         mock_validate.assert_called_once_with("assets/bike.tcx")
         mock_indent.assert_called_once_with("assets/bike.tcx")
 
@@ -245,7 +267,8 @@ class TestMain(unittest.TestCase):
             result = ask_file_path("Provide path")
             mock_path.assert_called_once_with(
                 "Enter the path to the TCX file:",
-                validate=os.path.isfile
+                validate=validation,
+                only_directories=False
             )
             self.assertEqual(result, "assets/test.tcx")
 
@@ -254,8 +277,9 @@ class TestMain(unittest.TestCase):
             mock_path.return_value.ask.return_value = "assets/downloaded.tcx"
             result = ask_file_path("Download")
             mock_path.assert_called_once_with(
-                "Check if the TCX file was downloaded and then enter the path to the file:",
-                validate=os.path.isfile
+                "Check if the TCX was downloaded and validate the file:",
+                validate=validation,
+                only_directories=False
             )
             self.assertEqual(result, "assets/downloaded.tcx")
 
@@ -274,6 +298,60 @@ class TestMain(unittest.TestCase):
         result = get_latest_download()
 
         self.assertEqual(result, "assets/bike.tcx")
+
+    def test_validation(self):
+        file_path = "assets/bike.tcx"
+        result = validation(file_path)
+
+        self.assertTrue(result)
+
+    def test_ask_training_plan(self):
+        with patch('src.main.questionary.text') as mock_text:
+            mock_text.return_value.ask.return_value = ""
+            result = ask_training_plan()
+            mock_text.assert_called_once_with(
+                "Was there anything planned for this training?"
+            )
+            self.assertEqual(result, "")
+
+    def test_ask_llm_analysis(self):
+        with patch('src.main.questionary.confirm') as mock_confirm:
+            mock_confirm.return_value.ask.return_value = True
+            result = ask_llm_analysis()
+            mock_confirm.assert_called_once_with(
+                "Do you want to perform AI analysis?",
+                default=False
+            )
+            self.assertTrue(result)
+
+    @patch('src.main.ChatOpenAI')
+    def test_perform_llm_analysis(self, mock_chat):
+        mock_invoke = mock_chat.return_value.invoke.return_value
+        mock_invoke.content = "Training Plan"
+        tcx_data = self.running_example_data
+        sport = "Run"
+        plan = "Training Plan"
+
+        result = perform_llm_analysis(tcx_data, sport, plan)
+        self.assertEqual(result, "Training Plan")
+
+    def test_preprocess_running_trackpoints_data(self):
+        tcx_data = self.running_example_data
+        result = preprocess_trackpoints_data(tcx_data)
+        self.assertEqual(len(result), 1646)
+
+    def test_preprocess_biking_trackpoints_data(self):
+        tcx_data = self.biking_example_data
+        result = preprocess_trackpoints_data(tcx_data)
+        self.assertEqual(len(result), 2028)
+
+    def test_run_euclidean_distance(self):
+        dataframe = DataFrame({
+            'latitude': [1, 2, 3, 3.5, 4, 5, 6, 6.5, 7, 8, 9],
+            'longitude': [1, 2, 3, 3.5, 4, 5, 6, 6.5, 7, 8, 9]
+        })
+        result = run_euclidean_dist_deletion(dataframe, 0.1)
+        self.assertEqual(len(result), 10)
 
 
 if __name__ == '__main__':

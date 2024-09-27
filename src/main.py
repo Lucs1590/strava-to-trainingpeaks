@@ -1,14 +1,25 @@
 import re
 import os
+import time
 import logging
 import webbrowser
-import time
-from defusedxml.minidom import parseString
+
+from typing import Tuple
 
 import questionary
+import numpy as np
+import pandas as pd
 
+from tqdm import tqdm
+from dotenv import load_dotenv
+from langchain_openai import ChatOpenAI
+from langchain_core.prompts.prompt import PromptTemplate
+from defusedxml.minidom import parseString
+from scipy.spatial.distance import squareform, pdist
 from tcxreader.tcxreader import TCXReader
 
+
+load_dotenv()
 logger = logging.getLogger()
 
 if not logger.handlers:
@@ -39,15 +50,22 @@ def main():
     else:
         file_path = ask_file_path(file_location)
 
-    if sport in ["Swim", "Other"]:
-        logger.info("Formatting the TCX file to be imported to TrainingPeaks")
-        format_to_swim(file_path)
-    elif sport in ["Bike", "Run"]:
-        logger.info("Validating the TCX file")
-        validate_tcx_file(file_path)
-    else:
-        logger.error("Invalid sport selected")
-        raise ValueError("Invalid sport selected")
+    if file_path:
+        if sport in ["Swim", "Other"]:
+            logger.info(
+                "Formatting the TCX file to be imported to TrainingPeaks"
+            )
+            format_to_swim(file_path)
+        elif sport in ["Bike", "Run"]:
+            logger.info("Validating the TCX file")
+            _, tcx_data = validate_tcx_file(file_path)
+            if ask_llm_analysis():
+                plan = ask_training_plan()
+                logger.info("Performing LLM analysis")
+                perform_llm_analysis(tcx_data, sport, plan)
+        else:
+            logger.error("Invalid sport selected")
+            raise ValueError("Invalid sport selected")
 
     indent_xml_file(file_path)
     logger.info("Process completed successfully!")
@@ -76,7 +94,8 @@ def ask_activity_id() -> str:
 
 def download_tcx_file(activity_id: str, sport: str) -> None:
     if sport in ["Swim", "Other"]:
-        url = f"https://www.strava.com/activities/{activity_id}/export_original"
+        url = f"https://www.strava.com/activities/{
+            activity_id}/export_original"
     else:
         url = f"https://www.strava.com/activities/{activity_id}/export_tcx"
     try:
@@ -104,12 +123,21 @@ def get_latest_download() -> str:
     return latest_file
 
 
-def ask_file_path(file_location) -> str:
-    question = "Enter the path to the TCX file:" if file_location == "Provide path" else "Check if the TCX file was downloaded and then enter the path to the file:"
+def ask_file_path(file_location: str) -> str:
+    if file_location == "Provide path":
+        question = "Enter the path to the TCX file:"
+    else:
+        question = "Check if the TCX was downloaded and validate the file:"
+
     return questionary.path(
         question,
-        validate=os.path.isfile
+        validate=validation,
+        only_directories=False
     ).ask()
+
+
+def validation(path: str) -> bool:
+    return os.path.isfile(path)
 
 
 def format_to_swim(file_path: str) -> None:
@@ -138,7 +166,7 @@ def write_xml_file(file_path: str, xml_str: str) -> None:
         xml_file.write(xml_str)
 
 
-def validate_tcx_file(file_path: str) -> bool:
+def validate_tcx_file(file_path: str) -> Tuple[bool, TCXReader]:
     xml_str = read_xml_file(file_path)
     if not xml_str:
         logger.error("The TCX file is empty.")
@@ -151,10 +179,110 @@ def validate_tcx_file(file_path: str) -> bool:
             "The TCX file is valid. You covered a significant distance in this activity, with %d meters.",
             data.distance
         )
-        return True
+        return True, data
     except Exception as err:
         logger.error("Invalid TCX file.")
         raise ValueError(f"Error reading the TCX file: {err}") from err
+
+
+def ask_llm_analysis() -> str:
+    return questionary.confirm(
+        "Do you want to perform AI analysis?",
+        default=False
+    ).ask()
+
+
+def ask_training_plan() -> str:
+    return questionary.text(
+        "Was there anything planned for this training?"
+    ).ask()
+
+
+def perform_llm_analysis(data: TCXReader, sport: str, plan: str) -> str:
+    dataframe = preprocess_trackpoints_data(data)
+
+    prompt = """SYSTEM: You are an AI Assistant that helps athletes to improve their performance.
+    Based on the following csv data that is related to a {sport} training session, carry out an analysis highlighting positive points, where the athlete did well and where he did poorly and what he can do to improve in the next {sport}.
+    <csv_data>
+    {data}
+    </csv_data>
+    """
+    prompt += "plan: {plan}" if plan else ""
+    prompt = PromptTemplate.from_template(prompt)
+    prompt = prompt.format(
+        sport=sport,
+        data=dataframe.to_csv(index=False),
+        plan=plan
+    )
+
+    openai_llm = ChatOpenAI(
+        openai_api_key=os.getenv("OPENAI_API_KEY"),
+        model_name="gpt-4o",
+        max_tokens=1500,
+        temperature=0.6,
+        max_retries=5
+    )
+    response = openai_llm.invoke(prompt)
+    logger.info("AI analysis completed successfully.")
+    logger.info("\nAI response:\n %s \n", response.content)
+    return response.content
+
+
+def preprocess_trackpoints_data(data):
+    dataframe = pd.DataFrame(data.trackpoints_to_dict())
+    dataframe.rename(
+        columns={
+            "distance": "Distance_Km",
+            "time": "Time",
+            "Speed": "Speed_Kmh"
+        }, inplace=True
+    )
+    dataframe["Time"] = dataframe["Time"].apply(lambda x: x.value / 10**9)
+    dataframe["Distance_Km"] = round(dataframe["Distance_Km"] / 1000, 2)
+    dataframe["Speed_Kmh"] = dataframe["Speed_Kmh"] * 3.6
+    dataframe["Pace"] = round(
+        dataframe["Speed_Kmh"].apply(lambda x: 60 / x if x > 0 else 0),
+        2
+    )
+    if dataframe["cadence"].isnull().sum() >= len(dataframe) / 2:
+        dataframe.drop(columns=["cadence"], inplace=True)
+
+    dataframe = dataframe.drop_duplicates()
+    dataframe = dataframe.reset_index(drop=True)
+    dataframe = dataframe.dropna()
+
+    if dataframe.shape[0] > 4000:
+        dataframe = run_euclidean_dist_deletion(dataframe, 0.55)
+    elif dataframe.shape[0] > 1000:
+        dataframe = run_euclidean_dist_deletion(dataframe, 0.35)
+    else:
+        dataframe = run_euclidean_dist_deletion(dataframe, 0.10)
+
+    dataframe["Time"] = pd.to_datetime(
+        dataframe["Time"],
+        unit='s'
+    ).dt.strftime('%H:%M:%S')
+
+    return dataframe
+
+
+def run_euclidean_dist_deletion(dataframe: pd.DataFrame, percentage: float) -> pd.DataFrame:
+    dists = pdist(dataframe, metric='euclidean')
+    dists = squareform(dists)
+    np.fill_diagonal(dists, np.inf)
+
+    total_rows = int(percentage * len(dataframe))
+    with tqdm(total=total_rows, desc="Removing similar points") as pbar:
+        for _ in range(total_rows):
+            min_idx = np.argmin(dists)
+            row, col = np.unravel_index(min_idx, dists.shape)
+            dists[row, :] = np.inf
+            dists[:, col] = np.inf
+            dataframe = dataframe.drop(row)
+            pbar.update(1)
+
+    dataframe = dataframe.reset_index(drop=True)
+    return dataframe
 
 
 def indent_xml_file(file_path: str) -> None:
