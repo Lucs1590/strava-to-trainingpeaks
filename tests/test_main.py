@@ -1,11 +1,12 @@
 import os
-import sys
+# import sys
 import unittest
-from unittest.mock import patch
-from tcxreader.tcxreader import TCXReader
-from pandas import DataFrame
 
-sys.path.append(os.path.abspath(''))
+from unittest.mock import patch
+from pandas import DataFrame
+from tcxreader.tcxreader import TCXReader
+
+# sys.path.append(os.path.abspath(''))
 
 from src.main import (
     download_tcx_file,
