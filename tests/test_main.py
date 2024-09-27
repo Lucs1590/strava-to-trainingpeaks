@@ -1,9 +1,9 @@
 import os
-#import sys
+import sys
 import unittest
 from unittest.mock import patch
 
-# sys.path.append(os.path.abspath(''))
+sys.path.append(os.path.abspath(''))
 
 from src.main import (
     download_tcx_file,
@@ -277,6 +277,12 @@ class TestMain(unittest.TestCase):
         result = get_latest_download()
 
         self.assertEqual(result, "assets/bike.tcx")
+
+    def test_validation(self):
+        file_path = "assets/bike.tcx"
+        result = validation(file_path)
+
+        self.assertTrue(result)
 
 
 if __name__ == '__main__':
