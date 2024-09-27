@@ -1,3 +1,35 @@
+## 0.5.0 (2024-09-27)
+
+### Feat
+
+- removing duplicated methods
+- improve error handling for getting the latest downloaded TCX file
+- automatically detect and use the latest downloaded TCX file
+- add tqdm to euclidian distance calcule
+- update params
+- allow null path
+- change percentage range
+- running euclidean distance to remove rows
+- Add OpenAI language model for LLM analysis
+- Improve LLM analysis prompt in perform_llm_analysis
+- Add AI Assistant prompt for LLM analysis
+- Add LLM analysis option to validate_tcx_file
+
+### Fix
+
+- model type
+
+### Refactor
+
+- handle FileNotFoundError
+- improving error handling and file detection
+- renaming df to dataframe
+- Convert Time column to Hour:Minute:Second format
+- improve ask_file_path function
+- output type
+- improving euclidian calc performance
+- Preprocess trackpoints data in perform_llm_analysis
+
 ## 0.4.0 (2024-05-08)
 
 ### Feat
