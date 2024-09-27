@@ -18,7 +18,8 @@ from src.main import (
     ask_file_location,
     ask_activity_id,
     ask_file_path,
-    get_latest_download
+    get_latest_download,
+    validation
 )
 
 
@@ -245,7 +246,8 @@ class TestMain(unittest.TestCase):
             result = ask_file_path("Provide path")
             mock_path.assert_called_once_with(
                 "Enter the path to the TCX file:",
-                validate=os.path.isfile
+                validate=validation,
+                only_directories=False
             )
             self.assertEqual(result, "assets/test.tcx")
 
@@ -254,8 +256,9 @@ class TestMain(unittest.TestCase):
             mock_path.return_value.ask.return_value = "assets/downloaded.tcx"
             result = ask_file_path("Download")
             mock_path.assert_called_once_with(
-                "Check if the TCX file was downloaded and then enter the path to the file:",
-                validate=os.path.isfile
+                "Check if the TCX was downloaded and validate the file:",
+                validate=validation,
+                only_directories=False
             )
             self.assertEqual(result, "assets/downloaded.tcx")
 
