@@ -93,11 +93,7 @@ def ask_activity_id() -> str:
 
 
 def download_tcx_file(activity_id: str, sport: str) -> None:
-    if sport in ["Swim", "Other"]:
-        url = f"https://www.strava.com/activities/{
-            activity_id}/export_original"
-    else:
-        url = f"https://www.strava.com/activities/{activity_id}/export_tcx"
+    url = f"https://www.strava.com/activities/{activity_id}/export_{'original' if sport in ['Swim', 'Other'] else 'tcx'}"
     try:
         webbrowser.open(url)
     except Exception as err:
