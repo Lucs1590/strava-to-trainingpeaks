@@ -1,3 +1,13 @@
+## 0.6.0 (2024-09-27)
+
+### Feat
+
+- improving prompt
+
+### Refactor
+
+- use a conditional expression for constructing the URL
+
 ## 0.5.0 (2024-09-27)
 
 ### Feat
