@@ -6,9 +6,9 @@ import webbrowser
 
 from typing import Tuple
 
-import questionary
 import numpy as np
 import pandas as pd
+import questionary
 
 from tqdm import tqdm
 from dotenv import load_dotenv
@@ -32,13 +32,13 @@ if not logger.handlers:
 
 def main():
     sport = ask_sport()
-    logger.info(f"Selected sport: %s", sport)
+    logger.info("Selected sport: %s", sport)
 
     file_location = ask_file_location()
 
     if file_location == "Download":
         activity_id = ask_activity_id()
-        logger.info(f"Selected activity ID: %s", activity_id)
+        logger.info("Selected activity ID: %s", activity_id)
         logger.info("Downloading the TCX file from Strava")
         download_tcx_file(activity_id, sport)
 
@@ -93,11 +93,7 @@ def ask_activity_id() -> str:
 
 
 def download_tcx_file(activity_id: str, sport: str) -> None:
-    if sport in ["Swim", "Other"]:
-        url = f"https://www.strava.com/activities/{
-            activity_id}/export_original"
-    else:
-        url = f"https://www.strava.com/activities/{activity_id}/export_tcx"
+    url = f"https://www.strava.com/activities/{activity_id}/export_{'original' if sport in ['Swim', 'Other'] else 'tcx'}"
     try:
         webbrowser.open(url)
     except Exception as err:
@@ -201,17 +197,25 @@ def ask_training_plan() -> str:
 def perform_llm_analysis(data: TCXReader, sport: str, plan: str) -> str:
     dataframe = preprocess_trackpoints_data(data)
 
-    prompt = """SYSTEM: You are an AI Assistant that helps athletes to improve their performance.
-    Based on the following csv data that is related to a {sport} training session, carry out an analysis highlighting positive points, where the athlete did well and where he did poorly and what he can do to improve in the next {sport}.
-    <csv_data>
-    {data}
-    </csv_data>
+    prompt_template = """
+    SYSTEM: You are an AI coach helping athletes optimize and improve their performance. 
+    Based on the provided {sport} training session data, perform the following analysis:
+
+    1. Identify key performance metrics.
+    2. Highlight the athlete's strengths during the session.
+    3. Pinpoint areas where the athlete can improve.
+    4. Offer actionable suggestions for enhancing performance in future {sport} sessions.
+
+    Training session data:
+    {training_data}
     """
-    prompt += "plan: {plan}" if plan else ""
-    prompt = PromptTemplate.from_template(prompt)
-    prompt = prompt.format(
+
+    if plan:
+        prompt_template += "\nTraining plan details: {plan}"
+
+    prompt = PromptTemplate.from_template(prompt_template).format(
         sport=sport,
-        data=dataframe.to_csv(index=False),
+        training_data=dataframe.to_csv(index=False),
         plan=plan
     )
 
