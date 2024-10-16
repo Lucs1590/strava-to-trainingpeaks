@@ -1,3 +1,11 @@
+## 0.6.1 (2024-10-16)
+
+### Refactor
+
+- removing useless else
+- add test for removing null columns in preprocessing function
+- preprocessing function to remove null columns
+
 ## 0.6.0 (2024-09-27)
 
 ### Feat
