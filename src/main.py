@@ -248,12 +248,11 @@ def preprocess_trackpoints_data(data):
         dataframe["Speed_Kmh"].apply(lambda x: 60 / x if x > 0 else 0),
         2
     )
-    if dataframe["cadence"].isnull().sum() >= len(dataframe) / 2:
-        dataframe.drop(columns=["cadence"], inplace=True)
+    dataframe = remove_null_columns(dataframe)
 
     dataframe = dataframe.drop_duplicates()
     dataframe = dataframe.reset_index(drop=True)
-    dataframe = dataframe.dropna()
+    dataframe = dataframe.dropna(subset=["Speed_Kmh", "Pace", "Distance_Km"])
 
     if dataframe.shape[0] > 4000:
         dataframe = run_euclidean_dist_deletion(dataframe, 0.55)
@@ -266,6 +265,25 @@ def preprocess_trackpoints_data(data):
         dataframe["Time"],
         unit='s'
     ).dt.strftime('%H:%M:%S')
+
+    return dataframe
+
+
+def remove_null_columns(dataframe: pd.DataFrame) -> pd.DataFrame:
+    columns_to_check = ["cadence", "hr_value", "latitude", "longitude"]
+    threshold = len(dataframe) / 2
+
+    for column in columns_to_check:
+        if column in dataframe.columns and dataframe[column].isnull().sum() >= threshold:
+            if column in ["latitude", "longitude"]:
+                dataframe.drop(
+                    columns=["latitude", "longitude"],
+                    inplace=True,
+                    errors='ignore'
+                )
+                break
+            else:
+                dataframe.drop(columns=[column], inplace=True, errors='ignore')
 
     return dataframe
 
