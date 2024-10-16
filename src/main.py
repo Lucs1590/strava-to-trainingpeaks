@@ -282,8 +282,7 @@ def remove_null_columns(dataframe: pd.DataFrame) -> pd.DataFrame:
                     errors='ignore'
                 )
                 break
-            else:
-                dataframe.drop(columns=[column], inplace=True, errors='ignore')
+            dataframe.drop(columns=[column], inplace=True, errors='ignore')
 
     return dataframe
 
