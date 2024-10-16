@@ -27,7 +27,8 @@ from src.main import (
     ask_llm_analysis,
     perform_llm_analysis,
     preprocess_trackpoints_data,
-    run_euclidean_dist_deletion
+    run_euclidean_dist_deletion,
+    remove_null_columns
 )
 
 
@@ -344,6 +345,15 @@ class TestMain(unittest.TestCase):
         tcx_data = self.biking_example_data
         result = preprocess_trackpoints_data(tcx_data)
         self.assertEqual(len(result), 2028)
+
+    def test_remove_null_columns(self):
+        dataframe = DataFrame({
+            'latitude': [1, 2, 3, 3.5, 4, 5, 6, 6.5, 7, 8, 9],
+            'longitude': [1, 2, 3, 3.5, 4, 5, 6, 6.5, 7, 8, 9],
+            'hr_value': [None] * 11
+        })
+        result = remove_null_columns(dataframe)
+        self.assertEqual(result.shape, (11, 2))
 
     def test_run_euclidean_distance(self):
         dataframe = DataFrame({
