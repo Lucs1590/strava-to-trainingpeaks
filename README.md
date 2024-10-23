@@ -59,10 +59,16 @@ cd strava-to-trainingpeaks
 pip install -r requirements.txt
 ```
 
-4. Run the script;
+4. Install the package;
 
 ```bash
-python src/main.py
+pip install .
+```
+
+5. Run the script;
+
+```bash
+strava-to-trainingpeaks
 ```
 
 ## Usage
@@ -72,6 +78,43 @@ Follow the on-screen instructions after running the script. You'll be prompted t
 ### Example Usage
 
 [![asciicast](https://asciinema.org/a/YtCDwQMThtlfgerhir12YA4Kb.svg)](https://asciinema.org/a/YtCDwQMThtlfgerhir12YA4Kb)
+
+## Common Issues and Solutions
+
+### Issue: No TCX file found in the Downloads folder
+
+**Solution**: Ensure that the TCX file has been downloaded correctly. If not, manually download the TCX file from Strava and provide the file path when prompted.
+
+### Issue: Invalid TCX file
+
+**Solution**: Verify that the TCX file is not corrupted and is in the correct format. If the issue persists, try downloading the TCX file again from Strava.
+
+### Issue: AI analysis not working
+
+**Solution**: Ensure that you have set up the OpenAI API key correctly in your environment variables. If the issue persists, check the logs for more details.
+
+## Additional Examples and Scenarios
+
+### Example 1: Exporting a Running Activity
+
+1. Run the script using the command `strava-to-trainingpeaks`.
+2. Select "Run" as the sport.
+3. Choose to download the TCX file from Strava.
+4. Enter the Strava activity ID.
+5. The script will download, validate, and process the TCX file for the running activity.
+
+### Example 2: Exporting a Swimming Activity
+
+1. Run the script using the command `strava-to-trainingpeaks`.
+2. Select "Swim" as the sport.
+3. Choose to download the TCX file from Strava.
+4. Enter the Strava activity ID.
+5. The script will download and format the TCX file for the swimming activity.
+
+### Example 3: Resetting the Configuration
+
+1. Run the script using the command `strava-to-trainingpeaks --reset-config`.
+2. The script will reset the configuration to default settings.
 
 ## License
 

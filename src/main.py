@@ -3,6 +3,7 @@ import os
 import time
 import logging
 import webbrowser
+import argparse
 
 from typing import Tuple
 
@@ -31,13 +32,58 @@ if not logger.handlers:
 
 
 def main():
-    sport = ask_sport()
+    parser = argparse.ArgumentParser(description="Strava to TrainingPeaks CLI")
+    parser.add_argument(
+        "--sport",
+        type=str,
+        choices=["Bike", "Run", "Swim", "Other"],
+        help="Sport type for the activity"
+    )
+    parser.add_argument(
+        "--file-location",
+        type=str,
+        choices=["Download", "Provide path"],
+        help="Location of the TCX file"
+    )
+    parser.add_argument(
+        "--activity-id",
+        type=str,
+        help="Strava activity ID"
+    )
+    parser.add_argument(
+        "--file-path",
+        type=str,
+        help="Path to the TCX file"
+    )
+    parser.add_argument(
+        "--llm-analysis",
+        action="store_true",
+        help="Perform AI analysis"
+    )
+    parser.add_argument(
+        "--training-plan",
+        type=str,
+        help="Training plan details"
+    )
+    parser.add_argument(
+        "--reset-config",
+        action="store_true",
+        help="Reset configuration to default settings"
+    )
+    args = parser.parse_args()
+
+    if args.reset_config:
+        reset_configuration()
+        logger.info("Configuration reset to default settings.")
+        return
+
+    sport = args.sport or ask_sport()
     logger.info("Selected sport: %s", sport)
 
-    file_location = ask_file_location()
+    file_location = args.file_location or ask_file_location()
 
     if file_location == "Download":
-        activity_id = ask_activity_id()
+        activity_id = args.activity_id or ask_activity_id()
         logger.info("Selected activity ID: %s", activity_id)
         logger.info("Downloading the TCX file from Strava")
         download_tcx_file(activity_id, sport)
@@ -48,7 +94,7 @@ def main():
             f"Automatically detected downloaded file path: {file_path}"
         )
     else:
-        file_path = ask_file_path(file_location)
+        file_path = args.file_path or ask_file_path(file_location)
 
     if file_path:
         if sport in ["Swim", "Other"]:
@@ -59,8 +105,8 @@ def main():
         elif sport in ["Bike", "Run"]:
             logger.info("Validating the TCX file")
             _, tcx_data = validate_tcx_file(file_path)
-            if ask_llm_analysis():
-                plan = ask_training_plan()
+            if args.llm_analysis or ask_llm_analysis():
+                plan = args.training_plan or ask_training_plan()
                 logger.info("Performing LLM analysis")
                 perform_llm_analysis(tcx_data, sport, plan)
         else:
@@ -94,11 +140,17 @@ def ask_activity_id() -> str:
 
 def download_tcx_file(activity_id: str, sport: str) -> None:
     url = f"https://www.strava.com/activities/{activity_id}/export_{'original' if sport in ['Swim', 'Other'] else 'tcx'}"
-    try:
-        webbrowser.open(url)
-    except Exception as err:
-        logger.error("Failed to download the TCX file from Strava.")
-        raise ValueError("Error opening the browser") from err
+    retry_attempts = 3
+    for attempt in range(retry_attempts):
+        try:
+            webbrowser.open(url)
+            break
+        except Exception as err:
+            logger.error("Failed to download the TCX file from Strava. Attempt %d/%d", attempt + 1, retry_attempts)
+            if attempt < retry_attempts - 1:
+                time.sleep(2 ** attempt)
+            else:
+                raise ValueError("Error opening the browser") from err
 
 
 def get_latest_download() -> str:
@@ -319,6 +371,13 @@ def indent_xml_file(file_path: str) -> None:
         logger.warning(
             "Failed to indent the XML file. The file will be saved without indentation."
         )
+
+
+def reset_configuration() -> None:
+    config_file = os.path.expanduser("~/.strava_to_trainingpeaks_config")
+    if os.path.exists(config_file):
+        os.remove(config_file)
+    logger.info("Configuration file reset to default settings.")
 
 
 if __name__ == "__main__":
