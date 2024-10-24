@@ -1,8 +1,8 @@
+import sys
+import venv
 import os
 import subprocess
 import questionary
-import sys
-import venv
 
 def create_virtual_environment():
     venv_dir = os.path.join(os.getcwd(), 'venv')
