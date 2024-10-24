@@ -94,11 +94,18 @@ def ask_activity_id() -> str:
 
 def download_tcx_file(activity_id: str, sport: str) -> None:
     url = f"https://www.strava.com/activities/{activity_id}/export_{'original' if sport in ['Swim', 'Other'] else 'tcx'}"
-    try:
-        webbrowser.open(url)
-    except Exception as err:
-        logger.error("Failed to download the TCX file from Strava.")
-        raise ValueError("Error opening the browser") from err
+    retry_attempts = 3
+    for attempt in range(retry_attempts):
+        try:
+            webbrowser.open(url)
+            break
+        except Exception as err:
+            logger.error(
+                "Failed to download the TCX file from Strava. Attempt %d/%d", attempt + 1, retry_attempts)
+            if attempt < retry_attempts - 1:
+                time.sleep(2 ** attempt)
+            else:
+                raise ValueError("Error opening the browser") from err
 
 
 def get_latest_download() -> str:
