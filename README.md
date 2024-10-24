@@ -59,10 +59,16 @@ cd strava-to-trainingpeaks
 pip install -r requirements.txt
 ```
 
-4. Run the script;
+4. Install the package globally;
 
 ```bash
-python src/main.py
+pip install .
+```
+
+5. Run the project globally;
+
+```bash
+strava-to-trainingpeaks
 ```
 
 ## Usage
@@ -72,6 +78,104 @@ Follow the on-screen instructions after running the script. You'll be prompted t
 ### Example Usage
 
 [![asciicast](https://asciinema.org/a/YtCDwQMThtlfgerhir12YA4Kb.svg)](https://asciinema.org/a/YtCDwQMThtlfgerhir12YA4Kb)
+
+## Packaging the Application into an Executable
+
+To package the application into an executable using `cx_Freeze`, follow these steps:
+
+1. Install `cx_Freeze` using pip:
+
+```bash
+pip install cx_Freeze
+```
+
+2. Create a `setup.py` file in the project directory with the following content:
+
+```python
+from cx_Freeze import setup, Executable
+
+setup(
+    name="strava-to-trainingpeaks",
+    version="0.1",
+    description="A tool to sync Strava activities with TrainingPeaks",
+    executables=[Executable("src/main.py")],
+)
+```
+
+3. Run the following command to create an executable:
+
+```bash
+python setup.py build
+```
+
+The executable will be created in the `build` directory.
+
+## Running the Project using Docker
+
+To run the project using Docker, follow these steps:
+
+1. Create a `Dockerfile` in the root directory of the project with the following content:
+
+```Dockerfile
+# Use an official Python runtime as a parent image
+FROM python:3.12-slim
+
+# Set the working directory in the container
+WORKDIR /app
+
+# Copy the current directory contents into the container at /app
+COPY . /app
+
+# Install any needed packages specified in requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Make port 80 available to the world outside this container
+EXPOSE 80
+
+# Define environment variable
+ENV NAME World
+
+# Run strava-to-trainingpeaks when the container launches
+CMD ["strava-to-trainingpeaks"]
+```
+
+2. Create a `.dockerignore` file in the root directory to specify which files and directories should be ignored by Docker:
+
+```plaintext
+__pycache__/
+*.pyc
+.git
+.vscode
+.env
+```
+
+3. Build the Docker image by running the following command in the root directory of the project:
+
+```bash
+docker build -t strava-to-trainingpeaks .
+```
+
+4. Run the Docker container using the following command:
+
+```bash
+docker run -it --rm strava-to-trainingpeaks
+```
+
+This will create a Docker container for the project, allowing it to be run in a consistent environment without manual setup.
+
+## Using the Interactive Setup Script
+
+To use the interactive setup script, follow these steps:
+
+1. Run the interactive setup script:
+
+```bash
+python interactive_setup.py
+```
+
+2. Follow the on-screen instructions to choose your preferred setup method (global installation, virtual environment, Docker).
+
+3. The script will guide you through the installation process, automate virtual environment creation, and install dependencies.
 
 ## License
 
