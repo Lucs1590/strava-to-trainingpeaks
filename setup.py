@@ -17,7 +17,7 @@ setup(
         'scipy==1.14.1',
         'tcxreader==0.4.10',
         'tqdm==4.66.5',
-        'setuptools==68.0.0',
+        'setuptools==70.0.0',
     ],
     entry_points={
         'console_scripts': [
