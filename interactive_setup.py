@@ -1,22 +1,21 @@
-import os
 import subprocess
 import questionary
 
 def create_virtualenv():
-    subprocess.run(["python3", "-m", "venv", "env"])
+    subprocess.run(["python3", "-m", "venv", "env"], check=True)
     print("Virtual environment created successfully.")
 
 def install_dependencies():
-    subprocess.run(["env/bin/pip", "install", "-r", "requirements.txt"])
+    subprocess.run(["env/bin/pip", "install", "-r", "requirements.txt"], check=True)
     print("Dependencies installed successfully.")
 
 def global_install():
-    subprocess.run(["pip", "install", "."])
+    subprocess.run(["pip", "install", "."], check=True)
     print("Package installed globally.")
 
 def docker_setup():
-    subprocess.run(["docker", "build", "-t", "strava-to-trainingpeaks", "."])
-    subprocess.run(["docker", "run", "-it", "--rm", "strava-to-trainingpeaks"])
+    subprocess.run(["docker", "build", "-t", "strava-to-trainingpeaks", "."], check=True)
+    subprocess.run(["docker", "run", "-it", "--rm", "strava-to-trainingpeaks"], check=True)
     print("Docker container setup and running.")
 
 def main():
