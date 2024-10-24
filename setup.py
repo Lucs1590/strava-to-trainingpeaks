@@ -1,11 +1,15 @@
 from setuptools import setup, find_packages
+from cx_Freeze import setup, Executable
 
 setup(
     name="strava-to-trainingpeaks",
     version="0.1.0",
     author="Lucas de Brito Silva",
-    author_email="lucas@example.com",
-    description="A tool to sync Strava activities with TrainingPeaks",
+    executable=[
+        Executable("src/main.py")
+    ],
+    author_email="lucasbsilva29@gmail.com",
+    description="A tool to sync Strava activities with TrainingPeaks, with the OpenAI API creating the workout descriptions.",
     packages=find_packages(),
     install_requires=[
         "defusedxml==0.7.1",
