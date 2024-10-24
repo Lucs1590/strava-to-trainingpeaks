@@ -19,6 +19,7 @@ The idea for this script came from the need to synchronize my triathlon training
 - Assisted mode for choosing the sport and activity download/upload options.
 - Formats TCX files for specific sports like swimming.
 - Validates TCX files for running and biking activities.
+- Indents TCX files for better readability.
 
 [Watch the video guide on exporting from Strava to TrainingPeaks manually](https://www.youtube.com/watch?v=Y0nWzOAM8_M)
 
@@ -81,28 +82,9 @@ Follow the on-screen instructions after running the script. You'll be prompted t
 
 ## Packaging the Application into an Executable
 
-To package the application into an executable using `cx_Freeze`, follow these steps:
+To package the application into an executable using `cx_Freeze`, follow step:
 
-1. Install `cx_Freeze` using pip:
-
-```bash
-pip install cx_Freeze
-```
-
-2. Create a `setup.py` file in the project directory with the following content:
-
-```python
-from cx_Freeze import setup, Executable
-
-setup(
-    name="strava-to-trainingpeaks",
-    version="0.1",
-    description="A tool to sync Strava activities with TrainingPeaks",
-    executables=[Executable("src/main.py")],
-)
-```
-
-3. Run the following command to create an executable:
+1. Run the following command to create an executable:
 
 ```bash
 python setup.py build
@@ -114,48 +96,13 @@ The executable will be created in the `build` directory.
 
 To run the project using Docker, follow these steps:
 
-1. Create a `Dockerfile` in the root directory of the project with the following content:
-
-```Dockerfile
-# Use an official Python runtime as a parent image
-FROM python:3.12-slim
-
-# Set the working directory in the container
-WORKDIR /app
-
-# Copy the current directory contents into the container at /app
-COPY . /app
-
-# Install any needed packages specified in requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Make port 80 available to the world outside this container
-EXPOSE 80
-
-# Define environment variable
-ENV NAME World
-
-# Run strava-to-trainingpeaks when the container launches
-CMD ["strava-to-trainingpeaks"]
-```
-
-2. Create a `.dockerignore` file in the root directory to specify which files and directories should be ignored by Docker:
-
-```plaintext
-__pycache__/
-*.pyc
-.git
-.vscode
-.env
-```
-
-3. Build the Docker image by running the following command in the root directory of the project:
+1. Build the Docker image by running the following command in the root directory of the project:
 
 ```bash
 docker build -t strava-to-trainingpeaks .
 ```
 
-4. Run the Docker container using the following command:
+2. Run the Docker container using the following command:
 
 ```bash
 docker run -it --rm strava-to-trainingpeaks
