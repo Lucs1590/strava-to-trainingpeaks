@@ -10,14 +10,14 @@ setup(
         'defusedxml==0.7.1',
         'langchain_core==0.3.10',
         'langchain_openai==0.2.2',
-        'numpy==2.0.2',
+        'numpy==1.24.2',
         'pandas==2.2.3',
         'python-dotenv==1.0.1',
         'questionary==2.0.1',
-        'scipy==1.14.1',
+        'scipy==1.13.1',
         'tcxreader==0.4.10',
         'tqdm==4.66.5',
-        'setuptools==70.0.0',
+        'setuptools==72.1.0',
     ],
     entry_points={
         'console_scripts': [
