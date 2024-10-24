@@ -28,8 +28,7 @@ from src.main import (
     perform_llm_analysis,
     preprocess_trackpoints_data,
     run_euclidean_dist_deletion,
-    remove_null_columns,
-    reset_configuration
+    remove_null_columns
 )
 
 
@@ -364,11 +363,6 @@ class TestMain(unittest.TestCase):
         result = run_euclidean_dist_deletion(dataframe, 0.1)
         self.assertEqual(len(result), 10)
 
-    @patch('src.main.reset_configuration')
-    def test_reset_configuration(self, mock_reset):
-        reset_configuration()
-        mock_reset.assert_called_once()
-
     @patch('src.main.webbrowser.open')
     def test_download_tcx_file_retry(self, mock_open):
         activity_id = "12345"
@@ -387,6 +381,7 @@ class TestMain(unittest.TestCase):
         })
         run_euclidean_dist_deletion(dataframe, 0.1)
         mock_tqdm.assert_called_once()
+
 
 if __name__ == '__main__':
     unittest.main()

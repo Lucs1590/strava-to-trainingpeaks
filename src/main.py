@@ -72,11 +72,6 @@ def main():
     )
     args = parser.parse_args()
 
-    if args.reset_config:
-        reset_configuration()
-        logger.info("Configuration reset to default settings.")
-        return
-
     sport = args.sport or ask_sport()
     logger.info("Selected sport: %s", sport)
 
@@ -146,7 +141,8 @@ def download_tcx_file(activity_id: str, sport: str) -> None:
             webbrowser.open(url)
             break
         except Exception as err:
-            logger.error("Failed to download the TCX file from Strava. Attempt %d/%d", attempt + 1, retry_attempts)
+            logger.error(
+                "Failed to download the TCX file from Strava. Attempt %d/%d", attempt + 1, retry_attempts)
             if attempt < retry_attempts - 1:
                 time.sleep(2 ** attempt)
             else:
@@ -371,13 +367,6 @@ def indent_xml_file(file_path: str) -> None:
         logger.warning(
             "Failed to indent the XML file. The file will be saved without indentation."
         )
-
-
-def reset_configuration() -> None:
-    config_file = os.path.expanduser("~/.strava_to_trainingpeaks_config")
-    if os.path.exists(config_file):
-        os.remove(config_file)
-    logger.info("Configuration file reset to default settings.")
 
 
 if __name__ == "__main__":
