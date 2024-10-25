@@ -22,10 +22,10 @@ def global_installation():
 
 
 def docker_setup():
-    subprocess.run(['docker', 'build', '-t',
-                   'strava-to-trainingpeaks', '.'], check=True, shell=False)
-    subprocess.run(['docker', 'run', '-it', '--rm',
-                   'strava-to-trainingpeaks'], check=True, shell=False)
+    subprocess.run(['/usr/local/bin/docker', 'build', '-t',
+                   'strava-to-trainingpeaks', '.'], check=True)
+    subprocess.run(['/usr/local/bin/docker', 'run', '-it', '--rm',
+                   'strava-to-trainingpeaks'], check=True)
 
 
 def main():
