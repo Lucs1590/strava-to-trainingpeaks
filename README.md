@@ -87,7 +87,7 @@ To package the application into an executable using `cx_Freeze`, follow step:
 1. Run the following command to create an executable:
 
 ```bash
-python setup.py build
+python exec_setup.py build
 ```
 
 The executable will be created in the `build` directory.
