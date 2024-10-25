@@ -19,6 +19,7 @@ The idea for this script came from the need to synchronize my triathlon training
 - Assisted mode for choosing the sport and activity download/upload options.
 - Formats TCX files for specific sports like swimming.
 - Validates TCX files for running and biking activities.
+- Indents TCX files for better readability.
 
 [Watch the video guide on exporting from Strava to TrainingPeaks manually](https://www.youtube.com/watch?v=Y0nWzOAM8_M)
 
@@ -59,10 +60,16 @@ cd strava-to-trainingpeaks
 pip install -r requirements.txt
 ```
 
-4. Run the script;
+4. Install the package globally;
 
 ```bash
-python src/main.py
+pip install .
+```
+
+5. Run the project globally;
+
+```bash
+strava-to-trainingpeaks
 ```
 
 ## Usage
@@ -72,6 +79,50 @@ Follow the on-screen instructions after running the script. You'll be prompted t
 ### Example Usage
 
 [![asciicast](https://asciinema.org/a/YtCDwQMThtlfgerhir12YA4Kb.svg)](https://asciinema.org/a/YtCDwQMThtlfgerhir12YA4Kb)
+
+## Packaging the Application into an Executable
+
+To package the application into an executable using `cx_Freeze`, follow step:
+
+1. Run the following command to create an executable:
+
+```bash
+python exec_setup.py build
+```
+
+The executable will be created in the `build` directory.
+
+## Running the Project using Docker
+
+To run the project using Docker, follow these steps:
+
+1. Build the Docker image by running the following command in the root directory of the project:
+
+```bash
+docker build -t strava-to-trainingpeaks .
+```
+
+2. Run the Docker container using the following command:
+
+```bash
+docker run -it --rm strava-to-trainingpeaks
+```
+
+This will create a Docker container for the project, allowing it to be run in a consistent environment without manual setup.
+
+## Using the Interactive Setup Script
+
+To use the interactive setup script, follow these steps:
+
+1. Run the interactive setup script:
+
+```bash
+python interactive_setup.py
+```
+
+2. Follow the on-screen instructions to choose your preferred setup method (global installation, virtual environment, Docker).
+
+3. The script will guide you through the installation process, automate virtual environment creation, and install dependencies.
 
 ## License
 
