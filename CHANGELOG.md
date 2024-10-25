@@ -1,3 +1,15 @@
+## 0.7.0 (2024-10-25)
+
+### Feat
+
+- refactor Dockerfile to use multi-stage build for improved efficiency and security
+
+### Refactor
+
+- update Dockerfile commands to use absolute path for docker executable
+- improve code formatting and add comments for clarity
+- include cx_Freeze and an executable for main.py
+
 ## 0.6.1 (2024-10-16)
 
 ### Refactor
