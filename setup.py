@@ -16,7 +16,7 @@ setup(
             "questionary==2.0.1",
             "scipy==1.13.1",
             "tcxreader==0.4.10",
-            "tqdm==4.66.5"
+            "tqdm==4.66.6"
     ],
     entry_points={
         "console_scripts": [
