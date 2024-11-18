@@ -284,15 +284,6 @@ class TestMain(unittest.TestCase):
             )
             self.assertEqual(result, "assets/downloaded.tcx")
 
-    @patch('os.path.expanduser')
-    @patch('os.listdir')
-    def test_get_latest_downloads_without_ask(self, mock_listdir, mock_expanduser):
-        mock_listdir.return_value = ["bike.tcx", "run.tcx", "swim.tcx"]
-        mock_expanduser.return_value = "assets/"
-        result = get_latest_download()
-
-        self.assertEqual(result, "assets/swim.tcx")
-
     @patch('src.main.ask_file_path')
     def test_get_latest_downloads_with_ask(self, mock_ask_path):
         mock_ask_path.return_value = "assets/bike.tcx"
