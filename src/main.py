@@ -61,8 +61,9 @@ def main():
             _, tcx_data = validate_tcx_file(file_path)
             if ask_llm_analysis():
                 plan = ask_training_plan()
+                language = ask_desired_language()
                 logger.info("Performing LLM analysis")
-                perform_llm_analysis(tcx_data, sport, plan)
+                perform_llm_analysis(tcx_data, sport, plan, language)
         else:
             logger.error("Invalid sport selected")
             raise ValueError("Invalid sport selected")
@@ -194,35 +195,46 @@ def ask_training_plan() -> str:
     ).ask()
 
 
-def perform_llm_analysis(data: TCXReader, sport: str, plan: str) -> str:
+def ask_desired_language() -> str:
+    return questionary.text(
+        "In which language do you want the analysis to be provided? (Default is Portuguese)",
+        default="Portuguese (Brazil)"
+    ).ask()
+
+
+def perform_llm_analysis(data: TCXReader, sport: str, plan: str, language: str) -> str:
     dataframe = preprocess_trackpoints_data(data)
 
     prompt_template = """
-    SYSTEM: You are an AI coach helping athletes optimize and improve their performance. 
-    Based on the provided {sport} training session data, perform the following analysis:
+    SYSTEM: You are an AI performance coach specializing in analyzing athletic performance to help athletes with their trainings.
+    Using the provided {sport} training session data, analyze the athlete's performance and deliver a detailed analysis and practical advice in {language} language.
+    Your analysis should include:
 
-    1. Identify key performance metrics.
-    2. Highlight the athlete's strengths during the session.
-    3. Pinpoint areas where the athlete can improve.
-    4. Offer actionable suggestions for enhancing performance in future {sport} sessions.
-
-    Training session data:
+    1. Key Performance Metrics: Identify and Evaluate the most relevant metrics from the session, understanding the athlete's overall performance
+    2. Strengths: Highlight the athlete's strongest aspects during the session, supported by specific metrics.
+    3. Improvement Opportunities: Pinpoint specific areas for growth and improvement.
+    4. Actionable Suggestions: Provide clear, practical recommendations to help the athlete enhance their performance in future {sport} sessions.
+    
+    Ensure your response is data-driven, clear, and motivational, helping the athlete make measurable progress.
+    
+    Training Session Data:
     {training_data}
     """
 
     if plan:
-        prompt_template += "\nTraining plan details: {plan}"
+        prompt_template += "\n\nTraining Plan Details:\n{plan}"
 
     prompt = PromptTemplate.from_template(prompt_template).format(
         sport=sport,
         training_data=dataframe.to_csv(index=False),
+        language=language,
         plan=plan
     )
 
     openai_llm = ChatOpenAI(
         openai_api_key=os.getenv("OPENAI_API_KEY"),
-        model_name="gpt-4o",
-        max_tokens=1500,
+        model_name="gpt-4o-mini",
+        max_tokens=2000,
         temperature=0.6,
         max_retries=5
     )

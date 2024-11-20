@@ -24,6 +24,7 @@ from src.main import (
     get_latest_download,
     validation,
     ask_training_plan,
+    ask_desired_language,
     ask_llm_analysis,
     perform_llm_analysis,
     preprocess_trackpoints_data,
@@ -198,6 +199,7 @@ class TestMain(unittest.TestCase):
         mock_validate.assert_not_called()
         mock_indent.assert_not_called()
 
+    @patch('src.main.ask_desired_language')
     @patch('src.main.ask_training_plan')
     @patch('src.main.perform_llm_analysis')
     @patch('src.main.ask_llm_analysis')
@@ -211,7 +213,7 @@ class TestMain(unittest.TestCase):
     @patch('src.main.indent_xml_file')
     def test_main_bike_sport(self, mock_indent, mock_validate, mock_format, mock_ask_path, mock_download,
                              mock_ask_id, mock_ask_location, mock_ask_sport, mock_llm_analysis, mock_perform_llm,
-                             mock_training_plan):
+                             mock_training_plan, mock_language):
         mock_ask_sport.return_value = "Bike"
         mock_ask_location.return_value = "Local"
         mock_ask_path.return_value = "assets/bike.tcx"
@@ -219,6 +221,7 @@ class TestMain(unittest.TestCase):
         mock_validate.return_value = True, "TCX Data"
         mock_perform_llm.return_value = "Training Plan"
         mock_training_plan.return_value = ""
+        mock_language.return_value = "Portuguese"
 
         main()
 
@@ -306,6 +309,16 @@ class TestMain(unittest.TestCase):
             )
             self.assertEqual(result, "")
 
+    def test_ask_desired_language(self):
+        with patch('src.main.questionary.text') as mock_text:
+            mock_text.return_value.ask.return_value = "Portuguese"
+            result = ask_desired_language()
+            mock_text.assert_called_once_with(
+                'In which language do you want the analysis to be provided? (Default is Portuguese)',
+                default='Portuguese (Brazil)'
+            )
+            self.assertEqual(result, "Portuguese")
+
     def test_ask_llm_analysis(self):
         with patch('src.main.questionary.confirm') as mock_confirm:
             mock_confirm.return_value.ask.return_value = True
@@ -323,8 +336,9 @@ class TestMain(unittest.TestCase):
         tcx_data = self.running_example_data
         sport = "Run"
         plan = "Training Plan"
+        lang = "Portuguese"
 
-        result = perform_llm_analysis(tcx_data, sport, plan)
+        result = perform_llm_analysis(tcx_data, sport, plan, lang)
         self.assertEqual(result, "Training Plan")
 
     def test_preprocess_running_trackpoints_data(self):
