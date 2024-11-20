@@ -323,8 +323,9 @@ class TestMain(unittest.TestCase):
         tcx_data = self.running_example_data
         sport = "Run"
         plan = "Training Plan"
+        lang = "Portuguese"
 
-        result = perform_llm_analysis(tcx_data, sport, plan)
+        result = perform_llm_analysis(tcx_data, sport, plan, lang)
         self.assertEqual(result, "Training Plan")
 
     def test_preprocess_running_trackpoints_data(self):
