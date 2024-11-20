@@ -24,7 +24,7 @@ from src.main import (
     get_latest_download,
     validation,
     ask_training_plan,
-    ask_language,
+    ask_desired_language,
     ask_llm_analysis,
     perform_llm_analysis,
     preprocess_trackpoints_data,
@@ -307,12 +307,13 @@ class TestMain(unittest.TestCase):
             )
             self.assertEqual(result, "")
 
-    def test_ask_language(self):
+    def test_ask_desired_language(self):
         with patch('src.main.questionary.text') as mock_text:
             mock_text.return_value.ask.return_value = "Portuguese"
-            result = ask_language()
+            result = ask_desired_language()
             mock_text.assert_called_once_with(
-                "Enter the language you want to use for the AI analysis:"
+                'In which language do you want the analysis to be provided? (Default is Portuguese)',
+                default='Portuguese (Brazil)'
             )
             self.assertEqual(result, "Portuguese")
 
