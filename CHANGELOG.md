@@ -1,3 +1,19 @@
+## 1.0.0 (2024-11-19)
+
+### Feat
+
+- add language selection for LLM analysis
+
+### Fix
+
+- removing wrong test
+
+### Refactor
+
+- update model name to gpt-4o-mini in LLM analysis
+- enhance prompt template for LLM analysis with clearer structure and motivational language
+- rename ask_language function to ask_desired_language and update test case
+
 ## 0.7.0 (2024-10-25)
 
 ### Feat
