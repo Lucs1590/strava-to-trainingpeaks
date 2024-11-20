@@ -199,6 +199,7 @@ class TestMain(unittest.TestCase):
         mock_validate.assert_not_called()
         mock_indent.assert_not_called()
 
+    @patch('src.main.ask_desired_language')
     @patch('src.main.ask_training_plan')
     @patch('src.main.perform_llm_analysis')
     @patch('src.main.ask_llm_analysis')
@@ -212,7 +213,7 @@ class TestMain(unittest.TestCase):
     @patch('src.main.indent_xml_file')
     def test_main_bike_sport(self, mock_indent, mock_validate, mock_format, mock_ask_path, mock_download,
                              mock_ask_id, mock_ask_location, mock_ask_sport, mock_llm_analysis, mock_perform_llm,
-                             mock_training_plan):
+                             mock_training_plan, mock_language):
         mock_ask_sport.return_value = "Bike"
         mock_ask_location.return_value = "Local"
         mock_ask_path.return_value = "assets/bike.tcx"
@@ -220,6 +221,7 @@ class TestMain(unittest.TestCase):
         mock_validate.return_value = True, "TCX Data"
         mock_perform_llm.return_value = "Training Plan"
         mock_training_plan.return_value = ""
+        mock_language.return_value = "Portuguese"
 
         main()
 
