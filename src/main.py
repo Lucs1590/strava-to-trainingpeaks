@@ -194,6 +194,7 @@ def ask_training_plan() -> str:
         "Was there anything planned for this training?"
     ).ask()
 
+
 def ask_desired_language() -> str:
     return questionary.text(
         "In which language do you want the analysis to be provided? (Default is Portuguese)",
@@ -232,7 +233,7 @@ def perform_llm_analysis(data: TCXReader, sport: str, plan: str, language: str) 
 
     openai_llm = ChatOpenAI(
         openai_api_key=os.getenv("OPENAI_API_KEY"),
-        model_name="gpt-4o",
+        model_name="gpt-4o-mini",
         max_tokens=2000,
         temperature=0.6,
         max_retries=5
