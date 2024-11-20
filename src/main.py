@@ -61,8 +61,9 @@ def main():
             _, tcx_data = validate_tcx_file(file_path)
             if ask_llm_analysis():
                 plan = ask_training_plan()
+                language = ask_desired_language()
                 logger.info("Performing LLM analysis")
-                perform_llm_analysis(tcx_data, sport, plan)
+                perform_llm_analysis(tcx_data, sport, plan, language)
         else:
             logger.error("Invalid sport selected")
             raise ValueError("Invalid sport selected")
@@ -193,13 +194,19 @@ def ask_training_plan() -> str:
         "Was there anything planned for this training?"
     ).ask()
 
+def ask_desired_language() -> str:
+    return questionary.text(
+        "In which language do you want the analysis to be provided? (Default is Portuguese)",
+        default="Portuguese (Brazil)"
+    ).ask()
 
-def perform_llm_analysis(data: TCXReader, sport: str, plan: str) -> str:
+
+def perform_llm_analysis(data: TCXReader, sport: str, plan: str, language: str) -> str:
     dataframe = preprocess_trackpoints_data(data)
 
     prompt_template = """
     SYSTEM: You are an AI coach helping athletes optimize and improve their performance. 
-    Based on the provided {sport} training session data, perform the following analysis:
+    Based on the provided {sport} training session data, perform the following analysis and provide feedback to the athlete in {language} language:
 
     1. Identify key performance metrics.
     2. Highlight the athlete's strengths during the session.
@@ -211,18 +218,19 @@ def perform_llm_analysis(data: TCXReader, sport: str, plan: str) -> str:
     """
 
     if plan:
-        prompt_template += "\nTraining plan details: {plan}"
+        prompt_template += "\n\nTraining Plan Details:\n{plan}"
 
     prompt = PromptTemplate.from_template(prompt_template).format(
         sport=sport,
         training_data=dataframe.to_csv(index=False),
+        language=language,
         plan=plan
     )
 
     openai_llm = ChatOpenAI(
         openai_api_key=os.getenv("OPENAI_API_KEY"),
         model_name="gpt-4o",
-        max_tokens=1500,
+        max_tokens=2000,
         temperature=0.6,
         max_retries=5
     )
