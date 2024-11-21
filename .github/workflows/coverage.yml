@@ -44,7 +44,7 @@ jobs:
           coverage xml
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5.0.2
+        uses: codecov/codecov-action@v5.0.4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: Lucs1590/strava-to-trainingpeaks
