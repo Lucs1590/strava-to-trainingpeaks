@@ -60,7 +60,7 @@ def main():
             logger.info("Validating the TCX file")
             _, tcx_data = validate_tcx_file(file_path)
             if ask_llm_analysis():
-                check_key()
+                check_openai_key()
                 plan = ask_training_plan()
                 language = ask_desired_language()
                 logger.info("Performing LLM analysis")
@@ -204,7 +204,7 @@ def ask_desired_language() -> str:
     ).ask()
 
 
-def check_key() -> None:
+def check_openai_key() -> None:
     if not os.getenv("OPENAI_API_KEY"):
         openai_key = questionary.text(
             "Enter your OpenAI API key:"
