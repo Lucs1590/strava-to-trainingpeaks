@@ -147,6 +147,7 @@ class TestMain(unittest.TestCase):
 
         self.assertTrue(mock_parse_string.called)
 
+    @patch('src.main.check_openai_key')
     @patch('src.main.get_latest_download')
     @patch('src.main.ask_sport')
     @patch('src.main.ask_file_location')
@@ -156,11 +157,12 @@ class TestMain(unittest.TestCase):
     @patch('src.main.validate_tcx_file')
     @patch('src.main.indent_xml_file')
     def test_main(self, mock_indent, mock_validate, mock_format, mock_download, mock_ask_id,
-                  mock_ask_location, mock_ask_sport, mock_latest_download):
+                  mock_ask_location, mock_ask_sport, mock_latest_download, mock_openai_key):
         mock_ask_sport.return_value = "Swim"
         mock_ask_location.return_value = "Download"
         mock_ask_id.return_value = "12345"
         mock_latest_download.return_value = "assets/swim.tcx"
+        mock_openai_key.return_value = None
 
         main()
 
@@ -173,6 +175,7 @@ class TestMain(unittest.TestCase):
         mock_validate.assert_not_called()
         mock_indent.assert_called_once_with("assets/swim.tcx")
 
+    @patch('src.main.check_openai_key')
     @patch('src.main.ask_sport')
     @patch('src.main.ask_file_location')
     @patch('src.main.ask_activity_id')
@@ -182,7 +185,8 @@ class TestMain(unittest.TestCase):
     @patch('src.main.validate_tcx_file')
     @patch('src.main.indent_xml_file')
     def test_main_invalid_sport(self, mock_indent, mock_validate, mock_format, mock_latest_download, mock_download,
-                                mock_ask_id, mock_ask_location, mock_ask_sport):
+                                mock_ask_id, mock_ask_location, mock_ask_sport, mock_openai_key):
+        mock_openai_key.return_value = None
         mock_ask_sport.return_value = "InvalidSport"
         mock_ask_location.return_value = "Download"
         mock_ask_id.return_value = "12345"
@@ -200,6 +204,7 @@ class TestMain(unittest.TestCase):
         mock_validate.assert_not_called()
         mock_indent.assert_not_called()
 
+    @patch('src.main.check_openai_key')
     @patch('src.main.ask_desired_language')
     @patch('src.main.ask_training_plan')
     @patch('src.main.perform_llm_analysis')
@@ -214,7 +219,7 @@ class TestMain(unittest.TestCase):
     @patch('src.main.indent_xml_file')
     def test_main_bike_sport(self, mock_indent, mock_validate, mock_format, mock_ask_path, mock_download,
                              mock_ask_id, mock_ask_location, mock_ask_sport, mock_llm_analysis, mock_perform_llm,
-                             mock_training_plan, mock_language):
+                             mock_training_plan, mock_language, mock_openai_key):
         mock_ask_sport.return_value = "Bike"
         mock_ask_location.return_value = "Local"
         mock_ask_path.return_value = "assets/bike.tcx"
@@ -223,6 +228,7 @@ class TestMain(unittest.TestCase):
         mock_perform_llm.return_value = "Training Plan"
         mock_training_plan.return_value = ""
         mock_language.return_value = "Portuguese"
+        mock_openai_key.return_value = None
 
         main()
 
