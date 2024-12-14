@@ -1,3 +1,18 @@
+## 1.1.0 (2024-12-14)
+
+### Feat
+
+- change OpenAI API key input to password prompt for security
+- add OpenAI API key check and prompt for user input
+
+### Fix
+
+- add UTF-8 encoding when writing OpenAI API key to .env file
+
+### Refactor
+
+- rename key check function for clarity
+
 ## 1.0.0 (2024-11-19)
 
 ### Feat
