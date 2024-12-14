@@ -60,6 +60,7 @@ def main():
             logger.info("Validating the TCX file")
             _, tcx_data = validate_tcx_file(file_path)
             if ask_llm_analysis():
+                check_key()
                 plan = ask_training_plan()
                 language = ask_desired_language()
                 logger.info("Performing LLM analysis")
@@ -94,7 +95,8 @@ def ask_activity_id() -> str:
 
 
 def download_tcx_file(activity_id: str, sport: str) -> None:
-    url = f"https://www.strava.com/activities/{activity_id}/export_{'original' if sport in ['Swim', 'Other'] else 'tcx'}"
+    url = f"https://www.strava.com/activities/{activity_id}/export_{
+        'original' if sport in ['Swim', 'Other'] else 'tcx'}"
     try:
         webbrowser.open(url)
     except Exception as err:
@@ -200,6 +202,17 @@ def ask_desired_language() -> str:
         "In which language do you want the analysis to be provided? (Default is Portuguese)",
         default="Portuguese (Brazil)"
     ).ask()
+
+
+def check_key() -> None:
+    if not os.getenv("OPENAI_API_KEY"):
+        openai_key = questionary.text(
+            "Enter your OpenAI API key:"
+        ).ask()
+        with open(".env", "w") as env_file:
+            env_file.write(f"OPENAI_API_KEY={openai_key}")
+        load_dotenv()
+        logger.info("OpenAI API key loaded successfully.")
 
 
 def perform_llm_analysis(data: TCXReader, sport: str, plan: str, language: str) -> str:
