@@ -29,7 +29,8 @@ from src.main import (
     perform_llm_analysis,
     preprocess_trackpoints_data,
     run_euclidean_dist_deletion,
-    remove_null_columns
+    remove_null_columns,
+    check_openai_key
 )
 
 
@@ -146,6 +147,7 @@ class TestMain(unittest.TestCase):
 
         self.assertTrue(mock_parse_string.called)
 
+    @patch('src.main.check_openai_key')
     @patch('src.main.get_latest_download')
     @patch('src.main.ask_sport')
     @patch('src.main.ask_file_location')
@@ -155,11 +157,12 @@ class TestMain(unittest.TestCase):
     @patch('src.main.validate_tcx_file')
     @patch('src.main.indent_xml_file')
     def test_main(self, mock_indent, mock_validate, mock_format, mock_download, mock_ask_id,
-                  mock_ask_location, mock_ask_sport, mock_latest_download):
+                  mock_ask_location, mock_ask_sport, mock_latest_download, mock_openai_key):
         mock_ask_sport.return_value = "Swim"
         mock_ask_location.return_value = "Download"
         mock_ask_id.return_value = "12345"
         mock_latest_download.return_value = "assets/swim.tcx"
+        mock_openai_key.return_value = None
 
         main()
 
@@ -172,6 +175,7 @@ class TestMain(unittest.TestCase):
         mock_validate.assert_not_called()
         mock_indent.assert_called_once_with("assets/swim.tcx")
 
+    @patch('src.main.check_openai_key')
     @patch('src.main.ask_sport')
     @patch('src.main.ask_file_location')
     @patch('src.main.ask_activity_id')
@@ -181,7 +185,8 @@ class TestMain(unittest.TestCase):
     @patch('src.main.validate_tcx_file')
     @patch('src.main.indent_xml_file')
     def test_main_invalid_sport(self, mock_indent, mock_validate, mock_format, mock_latest_download, mock_download,
-                                mock_ask_id, mock_ask_location, mock_ask_sport):
+                                mock_ask_id, mock_ask_location, mock_ask_sport, mock_openai_key):
+        mock_openai_key.return_value = None
         mock_ask_sport.return_value = "InvalidSport"
         mock_ask_location.return_value = "Download"
         mock_ask_id.return_value = "12345"
@@ -199,6 +204,7 @@ class TestMain(unittest.TestCase):
         mock_validate.assert_not_called()
         mock_indent.assert_not_called()
 
+    @patch('src.main.check_openai_key')
     @patch('src.main.ask_desired_language')
     @patch('src.main.ask_training_plan')
     @patch('src.main.perform_llm_analysis')
@@ -213,7 +219,7 @@ class TestMain(unittest.TestCase):
     @patch('src.main.indent_xml_file')
     def test_main_bike_sport(self, mock_indent, mock_validate, mock_format, mock_ask_path, mock_download,
                              mock_ask_id, mock_ask_location, mock_ask_sport, mock_llm_analysis, mock_perform_llm,
-                             mock_training_plan, mock_language):
+                             mock_training_plan, mock_language, mock_openai_key):
         mock_ask_sport.return_value = "Bike"
         mock_ask_location.return_value = "Local"
         mock_ask_path.return_value = "assets/bike.tcx"
@@ -222,6 +228,7 @@ class TestMain(unittest.TestCase):
         mock_perform_llm.return_value = "Training Plan"
         mock_training_plan.return_value = ""
         mock_language.return_value = "Portuguese"
+        mock_openai_key.return_value = None
 
         main()
 
@@ -328,6 +335,25 @@ class TestMain(unittest.TestCase):
                 default=False
             )
             self.assertTrue(result)
+
+    def test_check_openai_api_key(self):
+        with patch('src.main.os.getenv') as mock_getenv:
+            mock_getenv.return_value = "API_KEY"
+            check_openai_key()
+            self.assertTrue(mock_getenv.called)
+            self.assertEqual(os.getenv("OPENAI_API_KEY"), "API_KEY")
+
+    @patch('src.main.os.getenv')
+    @patch('src.main.questionary.password')
+    @patch('builtins.open', new_callable=unittest.mock.mock_open)
+    def test_check_openai_api_key_empty(self, mock_open, mock_text, mock_getenv):
+        mock_text.return_value.ask.return_value = "API_KEY"
+        mock_getenv.return_value = None
+        mock_open.return_value.write.return_value = "API_KEY"
+        check_openai_key()
+        mock_text.assert_called_once_with('Enter your OpenAI API key:')
+        self.assertTrue(mock_open.called)
+        self.assertTrue(mock_text.called)
 
     @patch('src.main.ChatOpenAI')
     def test_perform_llm_analysis(self, mock_chat):
