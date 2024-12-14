@@ -209,7 +209,7 @@ def check_openai_key() -> None:
         openai_key = questionary.password(
             "Enter your OpenAI API key:"
         ).ask()
-        with open(".env", "w") as env_file:
+        with open(".env", "w", encoding="utf-8") as env_file:
             env_file.write(f"OPENAI_API_KEY={openai_key}")
         load_dotenv()
         logger.info("OpenAI API key loaded successfully.")
