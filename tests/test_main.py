@@ -29,7 +29,8 @@ from src.main import (
     perform_llm_analysis,
     preprocess_trackpoints_data,
     run_euclidean_dist_deletion,
-    remove_null_columns
+    remove_null_columns,
+    check_openai_key
 )
 
 
@@ -328,6 +329,25 @@ class TestMain(unittest.TestCase):
                 default=False
             )
             self.assertTrue(result)
+
+    def test_check_openai_api_key(self):
+        with patch('src.main.os.getenv') as mock_getenv:
+            mock_getenv.return_value = "API_KEY"
+            check_openai_key()
+            self.assertTrue(mock_getenv.called)
+            self.assertEqual(os.getenv("OPENAI_API_KEY"), "API_KEY")
+
+    @patch('src.main.os.getenv')
+    @patch('src.main.questionary.password')
+    @patch('builtins.open', new_callable=unittest.mock.mock_open)
+    def test_check_openai_api_key_empty(self, mock_open, mock_text, mock_getenv):
+        mock_text.return_value.ask.return_value = "API_KEY"
+        mock_getenv.return_value = None
+        mock_open.return_value.write.return_value = "API_KEY"
+        check_openai_key()
+        mock_text.assert_called_once_with('Enter your OpenAI API key:')
+        self.assertTrue(mock_open.called)
+        self.assertTrue(mock_text.called)
 
     @patch('src.main.ChatOpenAI')
     def test_perform_llm_analysis(self, mock_chat):
