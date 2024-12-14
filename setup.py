@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 setup(
     name="strava-to-trainingpeaks",
-    version="1.0.0",
+    version="1.1.0",
     author="Lucas de Brito Silva",
     author_email="lucasbsilva29@gmail.com",
     description="A tool to sync Strava activities with TrainingPeaks, with the OpenAI API creating the workout descriptions.",
