@@ -1,4 +1,18 @@
+import os
+import re
+from pathlib import Path
 from setuptools import setup, find_packages
+
+
+def read(file_name):
+    with open(
+        os.path.join(
+            Path(os.path.dirname(__file__)),
+            file_name)
+    ) as _file:
+        return _file.read()
+
+
 setup(
     name="strava-to-trainingpeaks",
     version=re.findall(
