@@ -206,7 +206,7 @@ def ask_desired_language() -> str:
 
 def check_openai_key() -> None:
     if not os.getenv("OPENAI_API_KEY"):
-        openai_key = questionary.text(
+        openai_key = questionary.password(
             "Enter your OpenAI API key:"
         ).ask()
         with open(".env", "w") as env_file:
