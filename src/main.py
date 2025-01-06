@@ -18,6 +18,7 @@ from defusedxml.minidom import parseString
 from scipy.spatial.distance import squareform, pdist
 from tcxreader.tcxreader import TCXReader
 
+from src.sync_agent import SyncAgent
 
 load_dotenv()
 logger = logging.getLogger()
@@ -71,6 +72,11 @@ def main():
 
     indent_xml_file(file_path)
     logger.info("Process completed successfully!")
+
+    # Instantiate and run the SyncAgent
+    sync_agent = SyncAgent()
+    athlete_id = "example_athlete_id"  # Replace with actual athlete ID
+    sync_agent.schedule_weekly_sync(athlete_id)
 
 
 def ask_sport() -> str:
