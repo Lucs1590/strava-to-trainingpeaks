@@ -32,7 +32,7 @@ setup(
         "python-dotenv==1.0.1",
         "questionary==2.1.0",
         "scipy==1.15.2",
-        "tcxreader==0.4.10",
+        "tcxreader==0.4.11",
         "tqdm==4.67.1"
     ],
     entry_points={
