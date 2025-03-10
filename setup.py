@@ -25,7 +25,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         "defusedxml==0.7.1",
-        "langchain_core==0.3.40",
+        "langchain_core==0.3.43",
         "langchain_openai==0.3.7",
         "numpy==1.26.4",
         "pandas==2.2.3",
