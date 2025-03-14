@@ -131,6 +131,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+strava_tokens.json
 
 # Spyder project settings
 .spyderproject
