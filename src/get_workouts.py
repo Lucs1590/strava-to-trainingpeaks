@@ -1,53 +1,109 @@
 import os
+import json
 import requests
 import datetime
+from dotenv import load_dotenv
+
+load_dotenv()
+
+TOKENS_FILE = 'strava_tokens.json'
+
+
+def load_tokens():
+    """Load tokens from the JSON file if it exists."""
+    if os.path.exists(TOKENS_FILE):
+        with open(TOKENS_FILE, 'r', encoding='utf-8') as file:
+            return json.load(file)
+    return None
+
+
+def save_tokens(tokens):
+    """Save tokens to the JSON file."""
+    with open(TOKENS_FILE, 'w', encoding='utf-8') as file:
+        json.dump(tokens, file, indent=4)
+
 
 def refresh_strava_token():
-    """Refresh the Strava API access token if expired."""
-    expires_at = int(os.getenv('STRAVA_TOKEN_EXPIRES_AT', '0'))
-    if expires_at < datetime.datetime.now().timestamp():
+    """
+    Refresh the Strava API access token if expired.
+    If no tokens exist, perform initial authentication using the authorization code.
+    """
+    tokens = load_tokens()
+    now_timestamp = datetime.datetime.now().timestamp()
+
+    if tokens:
+        if tokens.get('expires_at', 0) < now_timestamp:
+            print("Access token expired. Refreshing token...")
+            response = requests.post(
+                url='https://www.strava.com/api/v3/oauth/token',
+                data={
+                    'client_id': os.getenv('STRAVA_CLIENT_ID'),
+                    'client_secret': os.getenv('STRAVA_CLIENT_SECRET'),
+                    'grant_type': 'refresh_token',
+                    'refresh_token': tokens['refresh_token']
+                }
+            )
+            if response.status_code == 200:
+                new_tokens = response.json()
+                save_tokens(new_tokens)
+                return new_tokens['access_token']
+            else:
+                print(
+                    f"Failed to refresh token: {response.status_code} - {response.text}")
+                return None
+        else:
+            return tokens['access_token']
+    else:
+        print("No token file found. Performing initial authentication...")
         response = requests.post(
             url='https://www.strava.com/api/v3/oauth/token',
             data={
                 'client_id': os.getenv('STRAVA_CLIENT_ID'),
                 'client_secret': os.getenv('STRAVA_CLIENT_SECRET'),
-                'refresh_token': os.getenv('STRAVA_REFRESH_TOKEN'),
-                'grant_type': 'refresh_token'
+                'code': os.getenv('STRAVA_CODE'),
+                'grant_type': 'authorization_code'
             }
         )
         if response.status_code == 200:
-            new_tokens = response.json()
-            os.environ['STRAVA_ACCESS_TOKEN'] = new_tokens['access_token']
-            os.environ['STRAVA_TOKEN_EXPIRES_AT'] = str(new_tokens['expires_at'])
-            return new_tokens['access_token']
+            tokens = response.json()
+            save_tokens(tokens)
+            return tokens['access_token']
         else:
-            print(f"Failed to refresh token: {response.status_code}")
+            print(
+                f"Failed initial authentication: {response.status_code} - {response.text}"
+            )
             return None
-    return os.getenv('STRAVA_ACCESS_TOKEN')
+
 
 def get_workouts_from_strava(start_date, end_date):
-    """Retrieve workouts from Strava within a date range."""
+    """
+    Retrieve workouts (activities) from Strava within a given date range.
+    """
     access_token = refresh_strava_token()
     if not access_token:
+        print("No valid access token available.")
         return []
 
     url = "https://www.strava.com/api/v3/athlete/activities"
     headers = {"Authorization": f"Bearer {access_token}"}
     params = {
-        "before": int(end_date.timestamp()),
         "after": int(start_date.timestamp()),
+        "before": int(end_date.timestamp()),
         "per_page": 200
     }
     response = requests.get(url, headers=headers, params=params)
     if response.status_code == 200:
         return response.json()
     else:
-        print(f"Failed to retrieve workouts from Strava: {response.status_code}")
+        print(
+            f"Failed to retrieve workouts: {response.status_code} - {response.text}"
+        )
         return []
 
-# Example usage
+
 if __name__ == "__main__":
     start_date = datetime.datetime(2024, 12, 1)
     end_date = datetime.datetime(2024, 12, 31)
+
     workouts = get_workouts_from_strava(start_date, end_date)
-    print(workouts)
+    workouts_ids = list(map(lambda x: x.get('id', None), workouts))
