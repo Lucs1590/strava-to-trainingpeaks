@@ -2,6 +2,7 @@ import os
 import json
 import requests
 import datetime
+import webbrowser
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -101,9 +102,35 @@ def get_workouts_from_strava(start_date, end_date):
         return []
 
 
+def export_tcx_files(workouts):
+
+    for workout in workouts:
+        download_tcx_file(
+            workout['id'],
+            workout['type']
+        )
+
+
+def download_tcx_file(activity_id: str, sport: str) -> None:
+    url = f"https://www.strava.com/activities/{activity_id}/export_{
+        'original' if sport in ['Swim', 'Other'] else 'tcx'}"
+    try:
+        webbrowser.open(url)
+    except Exception as err:
+        print("Failed to download the TCX file from Strava.")
+        raise ValueError("Error opening the browser") from err
+
+
 if __name__ == "__main__":
-    start_date = datetime.datetime(2024, 12, 1)
+    start_date = datetime.datetime(2024, 10, 1)
     end_date = datetime.datetime(2024, 12, 31)
 
     workouts = get_workouts_from_strava(start_date, end_date)
-    workouts_ids = list(map(lambda x: x.get('id', None), workouts))
+    workouts = list(
+        filter(lambda x: str(x.get("type")).lower() in ["swim", "run", "ride"],
+               map(lambda x: {"id": x.get('id', None), "type": x.get('type', None)},
+                   workouts
+                   )
+               )
+    )
+    export_tcx_files(workouts)
