@@ -124,6 +124,47 @@ python interactive_setup.py
 
 3. The script will guide you through the installation process, automate virtual environment creation, and install dependencies.
 
+## Synchronization Agent
+
+### Overview
+
+The synchronization agent automates the process of synchronizing all workouts for a given athlete from Strava to TrainingPeaks for an entire week. It uses LangChain to manage synchronization tasks and integrates with Strava and TrainingPeaks APIs.
+
+### Features
+
+- Handles API rate limits with error handling, logging, and scheduling mechanisms.
+- Automates synchronization of workouts for an entire week.
+- Uses LangChain to manage synchronization tasks.
+- Integrates with Strava and TrainingPeaks APIs.
+- Optimized for scalability to support multiple athletes.
+
+### Setup
+
+1. Ensure you have the necessary environment variables set up in a `.env` file:
+
+```
+STRAVA_API_KEY=your_strava_api_key
+TRAININGPEAKS_USERNAME=your_trainingpeaks_username
+TRAININGPEAKS_PASSWORD=your_trainingpeaks_password
+OPENAI_API_KEY=your_openai_api_key
+```
+
+2. Install the required dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+3. Run the synchronization agent:
+
+```bash
+python src/main.py
+```
+
+### Usage
+
+The synchronization agent will run the sync process weekly, distributing API requests over time to reduce the likelihood of hitting rate limits. It logs all synchronization attempts and their outcomes for monitoring and debugging purposes.
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](https://github.com/Lucs1590/strava-to-trainingpeaks/blob/main/LICENSE) file for details.
