@@ -106,8 +106,7 @@ class TCXProcessor:
 
         if file_location == "Download":
             return self._handle_download_flow()
-        else:
-            return self._get_file_path_from_user()
+        return self._get_file_path_from_user()
 
     def _handle_download_flow(self) -> Optional[str]:
         """Handle Strava download flow."""
@@ -162,9 +161,8 @@ class TCXProcessor:
         if tcx_files:
             latest_file = max(tcx_files, key=lambda f: f.stat().st_mtime)
             return str(latest_file)
-        else:
-            self.logger.warning("No TCX file found in Downloads folder")
-            return self._get_file_path_from_user()
+        self.logger.warning("No TCX file found in Downloads folder")
+        return self._get_file_path_from_user()
 
     def _get_file_path_from_user(self) -> str:
         """Get file path from user input with validation."""
