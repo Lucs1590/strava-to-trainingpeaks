@@ -2,8 +2,7 @@
 
 ### Feat
 
-- refine analysis prompt template for enhanced clarity and actionable insights
-- enhance analysis prompt template for comprehensive performance insights
+- refine and enhance analysis prompt template for improved clarity, actionable insights, and comprehensive performance
 - refactor TCX processing and add AI analysis capabilities
 
 ### Fix
