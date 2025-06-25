@@ -50,23 +50,9 @@ class ProcessingConfig:
 class TCXProcessor:
     def __init__(self):
         load_dotenv()
-        self.logger = self._setup_logging()
+        self.logger = setup_logging()
         self.config = ProcessingConfig()
         self.sport: Optional[Sport] = None
-
-    def _setup_logging(self) -> logging.Logger:
-        logger = logging.getLogger(__name__)
-
-        if not logger.handlers:
-            logging.basicConfig(level=logging.INFO)
-            handler = logging.FileHandler('tcx_processor.log')
-            formatter = logging.Formatter(
-                '%(asctime)s - %(levelname)s - %(message)s'
-            )
-            handler.setFormatter(formatter)
-            logger.addHandler(handler)
-
-        return logger
 
     def run(self) -> None:
         """Main execution flow."""
@@ -450,6 +436,7 @@ class TrackpointProcessor:
 
     def __init__(self, config: ProcessingConfig):
         self.config = config
+        self.logger = setup_logging()
 
     def process(self, tcx_data: TCXReader) -> pd.DataFrame:
         """Process trackpoints data."""
@@ -556,8 +543,9 @@ class TrackpointProcessor:
             df = df.drop(index=list(indices_to_drop)).reset_index(drop=True)
 
         except Exception as err:
-            logging.getLogger(__name__).warning(
-                "Failed to apply euclidean filtering: %s", str(err)
+            self.logger.warning(
+                "Failed to apply euclidean filtering: %s",
+                str(err)
             )
 
         return df
@@ -569,6 +557,21 @@ class TrackpointProcessor:
             unit='s'
         ).dt.strftime('%H:%M:%S')
         return df
+
+
+def setup_logging() -> logging.Logger:
+    logger = logging.getLogger(__name__)
+
+    if not logger.handlers:
+        logging.basicConfig(level=logging.INFO)
+        handler = logging.FileHandler('tcx_processor.log')
+        formatter = logging.Formatter(
+            '%(asctime)s - %(levelname)s - %(message)s'
+        )
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+
+    return logger
 
 
 def main():
