@@ -187,6 +187,30 @@ class TestMain(unittest.TestCase):
             mock_get_path.assert_called_once()
             self.assertEqual(result, "provided.tcx")
 
+    def test_tcx_processor_handle_download_flow(self):
+        processor = TCXProcessor()
+        with patch.object(processor, "_get_activity_id", return_value="123456") as mock_get_id, \
+                patch.object(processor, "_download_tcx_file") as mock_download, \
+                patch("time.sleep") as mock_sleep, \
+                patch.object(processor, "_get_latest_download", return_value="latest.tcx") as mock_latest, \
+                patch.object(processor.logger, "info") as mock_info:
+            result = processor._handle_download_flow()
+            mock_get_id.assert_called_once()
+            mock_download.assert_called_once_with("123456")
+            mock_sleep.assert_called_once_with(3)
+            mock_latest.assert_called_once()
+            self.assertEqual(result, "latest.tcx")
+            info_calls = [call.args[0] for call in mock_info.call_args_list]
+            self.assertTrue(
+                any("Selected activity ID" in msg for msg in info_calls)
+            )
+            self.assertTrue(
+                any("Downloading the TCX file from Strava" in msg for msg in info_calls)
+            )
+            self.assertTrue(
+                any("Automatically detected downloaded file path" in msg for msg in info_calls)
+            )
+
 
 if __name__ == '__main__':
     unittest.main()
