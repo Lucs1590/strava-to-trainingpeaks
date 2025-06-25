@@ -83,8 +83,8 @@ class TCXProcessor:
 
             self.logger.info("Process completed successfully!")
 
-        except Exception as e:
-            self.logger.error("Process failed: %s", str(e))
+        except Exception as err:
+            self.logger.error("Process failed: %s", str(err))
             raise
 
     def _get_sport_selection(self) -> Sport:
@@ -145,9 +145,9 @@ class TCXProcessor:
 
         try:
             webbrowser.open(url)
-        except Exception as e:
+        except Exception as err:
             self.logger.error("Failed to download the TCX file from Strava")
-            raise ValueError("Error opening the browser") from e
+            raise ValueError("Error opening the browser") from err
 
     def _get_latest_download(self) -> str:
         """Get the latest TCX file from Downloads folder."""
@@ -200,10 +200,7 @@ class TCXProcessor:
         # Modify XML header
         xml_content = xml_content.replace(
             '<TrainingCenterDatabase xmlns="http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2">',
-            '<TrainingCenterDatabase xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
-            'xmlns="http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2" '
-            'xsi:schemaLocation="http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2 '
-            'http://www8.garmin.com/xmlschemas/TrainingCenterDatabasev2.xsd">'
+            '<TrainingCenterDatabase xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2" xsi:schemaLocation="http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2 http://www8.garmin.com/xmlschemas/TrainingCenterDatabasev2.xsd">'
         )
 
         xml_content = re.sub(r"<Value>(\d+)\.0</Value>",
@@ -218,8 +215,8 @@ class TCXProcessor:
         try:
             with open(file_path, "r", encoding='utf-8') as xml_file:
                 return xml_file.read()
-        except Exception as e:
-            self.logger.error("Failed to read XML file: %s", str(e))
+        except Exception as err:
+            self.logger.error("Failed to read XML file: %s", str(err))
             raise
 
     def _write_xml_file(self, file_path: str, content: str) -> None:
@@ -227,8 +224,8 @@ class TCXProcessor:
         try:
             with open(file_path, "w", encoding='utf-8') as xml_file:
                 xml_file.write(content)
-        except Exception as e:
-            self.logger.error("Failed to write XML file: %s", str(e))
+        except Exception as err:
+            self.logger.error("Failed to write XML file: %s", str(err))
             raise
 
     def _validate_tcx_file(self, file_path: str) -> Tuple[bool, Optional[TCXReader]]:
@@ -246,8 +243,8 @@ class TCXProcessor:
                 data.distance
             )
             return True, data
-        except Exception as e:
-            self.logger.error("Invalid TCX file: %s", str(e))
+        except Exception as err:
+            self.logger.error("Invalid TCX file: %s", str(err))
             return False, None
 
     def _should_perform_ai_analysis(self) -> bool:
@@ -273,7 +270,10 @@ class TCXProcessor:
 
         self.logger.info("Performing AI analysis")
         analysis_result = self._analyze_with_llm(
-            tcx_data, sport, analysis_config)
+            tcx_data,
+            sport,
+            analysis_config
+        )
         self.logger.info("AI analysis completed successfully")
         self.logger.info("AI response:\n%s", analysis_result)
 
@@ -293,7 +293,8 @@ class TCXProcessor:
         processed_data = self._preprocess_trackpoints(tcx_data)
 
         prompt_template = self._get_analysis_prompt_template(
-            config.training_plan)
+            config.training_plan
+        )
         prompt = PromptTemplate.from_template(prompt_template).format(
             sport=sport.value,
             training_data=processed_data.to_csv(index=False),
@@ -346,10 +347,10 @@ class TCXProcessor:
             xml_dom = parseString(xml_content)
             formatted_xml = xml_dom.toprettyxml(indent="  ")
             self._write_xml_file(file_path, formatted_xml)
-        except Exception as e:
+        except Exception as err:
             self.logger.warning(
                 "Failed to format XML file: %s. File saved without formatting.",
-                str(e)
+                str(err)
             )
 
 
@@ -384,24 +385,16 @@ class TrackpointProcessor:
 
     def _clean_and_transform(self, df: pd.DataFrame) -> pd.DataFrame:
         """Clean and transform the dataframe."""
-        # Convert time from nanoseconds to seconds
         df["Time"] = df["Time"].apply(lambda x: x.value / 10**9)
-
-        # Convert distance to kilometers
         df["Distance_Km"] = round(df["Distance_Km"] / 1000, 2)
-
-        # Convert speed to km/h
         df["Speed_Kmh"] = df["Speed_Kmh"] * 3.6
-
-        # Calculate pace (minutes per km)
         df["Pace"] = round(
-            df["Speed_Kmh"].apply(lambda x: 60 / x if x > 0 else 0), 2
+            df["Speed_Kmh"].apply(lambda x: 60 / x if x > 0 else 0),
+            2
         )
 
-        # Remove columns with too many null values
         df = self._remove_sparse_columns(df)
 
-        # Clean data
         df = df.drop_duplicates().reset_index(drop=True)
         df = df.dropna(subset=["Speed_Kmh", "Pace", "Distance_Km"])
 
@@ -415,9 +408,11 @@ class TrackpointProcessor:
         for column in columns_to_check:
             if column in df.columns and df[column].isnull().sum() >= threshold:
                 if column in ["latitude", "longitude"]:
-                    # Remove both lat/lon if one is sparse
-                    df.drop(columns=["latitude", "longitude"],
-                            inplace=True, errors='ignore')
+                    df.drop(
+                        columns=["latitude", "longitude"],
+                        inplace=True,
+                        errors='ignore'
+                    )
                     break
                 df.drop(columns=[column], inplace=True, errors='ignore')
 
@@ -438,10 +433,9 @@ class TrackpointProcessor:
 
     def _apply_euclidean_filtering(self, df: pd.DataFrame, percentage: float) -> pd.DataFrame:
         """Apply euclidean distance filtering to reduce similar points."""
-        if len(df) < 10:  # Skip filtering for very small datasets
+        if len(df) < 50:
             return df
 
-        # Use only numeric columns for distance calculation
         numeric_df = df.select_dtypes(include=[np.number])
         if numeric_df.empty:
             return df
@@ -456,7 +450,7 @@ class TrackpointProcessor:
 
             with tqdm(total=rows_to_remove, desc="Filtering similar points") as pbar:
                 for _ in range(rows_to_remove):
-                    if len(indices_to_drop) >= len(df) - 2:  # Keep at least 2 points
+                    if len(indices_to_drop) >= len(df) - 10:
                         break
 
                     min_idx = np.argmin(distance_matrix)
@@ -470,9 +464,9 @@ class TrackpointProcessor:
 
             df = df.drop(index=list(indices_to_drop)).reset_index(drop=True)
 
-        except Exception as e:
+        except Exception as err:
             logging.getLogger(__name__).warning(
-                "Failed to apply euclidean filtering: %s", str(e)
+                "Failed to apply euclidean filtering: %s", str(err)
             )
 
         return df
@@ -480,7 +474,9 @@ class TrackpointProcessor:
     def _format_time_column(self, df: pd.DataFrame) -> pd.DataFrame:
         """Format time column to HH:MM:SS."""
         df["Time"] = pd.to_datetime(
-            df["Time"], unit='s').dt.strftime('%H:%M:%S')
+            df["Time"],
+            unit='s'
+        ).dt.strftime('%H:%M:%S')
         return df
 
 
