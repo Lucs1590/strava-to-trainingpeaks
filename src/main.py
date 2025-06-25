@@ -72,7 +72,7 @@ class TCXProcessor:
 
         except Exception as err:
             self.logger.error("Process failed: %s", str(err))
-            raise
+            raise Exception("An error occurred during processing") from err
 
     def _get_sport_selection(self) -> Sport:
         """Get sport selection from user."""
