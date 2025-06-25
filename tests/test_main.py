@@ -164,6 +164,24 @@ class TestMain(unittest.TestCase):
             sport = processor._get_sport_selection()
             self.assertEqual(sport, main_module.Sport.OTHER)
 
+    def test_tcx_processor_get_tcx_file_path_download(self):
+        processor = TCXProcessor()
+        with patch('src.main.questionary.select') as mock_select, \
+                patch.object(processor, "_handle_download_flow", return_value="downloaded.tcx") as mock_download:
+            mock_select.return_value.ask.return_value = "Download"
+            result = processor._get_tcx_file_path()
+            mock_download.assert_called_once()
+            self.assertEqual(result, "downloaded.tcx")
+
+    def test_tcx_processor_get_tcx_file_path_provide_path(self):
+        processor = TCXProcessor()
+        with patch('src.main.questionary.select') as mock_select, \
+                patch.object(processor, "_get_file_path_from_user", return_value="provided.tcx") as mock_get_path:
+            mock_select.return_value.ask.return_value = "Provide path"
+            result = processor._get_tcx_file_path()
+            mock_get_path.assert_called_once()
+            self.assertEqual(result, "provided.tcx")
+
 
 if __name__ == '__main__':
     unittest.main()
