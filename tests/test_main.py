@@ -141,6 +141,29 @@ class TestMain(unittest.TestCase):
             processor.run()
             mock_error.assert_any_call("No valid file path provided")
 
+    def test_tcx_processor_get_sport_selection(self):
+        processor = TCXProcessor()
+        with patch('src.main.questionary.select') as mock_select:
+            # Simulate user selecting "Run"
+            mock_select.return_value.ask.return_value = "Run"
+            sport = processor._get_sport_selection()
+            self.assertEqual(sport, main_module.Sport.RUN)
+
+            # Simulate user selecting "Bike"
+            mock_select.return_value.ask.return_value = "Bike"
+            sport = processor._get_sport_selection()
+            self.assertEqual(sport, main_module.Sport.BIKE)
+
+            # Simulate user selecting "Swim"
+            mock_select.return_value.ask.return_value = "Swim"
+            sport = processor._get_sport_selection()
+            self.assertEqual(sport, main_module.Sport.SWIM)
+
+            # Simulate user selecting "Other"
+            mock_select.return_value.ask.return_value = "Other"
+            sport = processor._get_sport_selection()
+            self.assertEqual(sport, main_module.Sport.OTHER)
+
 
 if __name__ == '__main__':
     unittest.main()
