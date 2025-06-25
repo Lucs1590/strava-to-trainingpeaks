@@ -15,7 +15,7 @@ FROM python:3.12-slim-bullseye
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
 
-RUN apt-get update && apt-get upgrade -y && apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
