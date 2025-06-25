@@ -491,7 +491,6 @@ class TrackpointProcessor:
                         inplace=True,
                         errors='ignore'
                     )
-                    break
                 df.drop(columns=[column], inplace=True, errors='ignore')
 
         return df
