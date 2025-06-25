@@ -85,7 +85,6 @@ class TestMain(unittest.TestCase):
 
     def test_tcx_processor_validate_tcx_file_invalid(self):
         processor = TCXProcessor()
-        # Simulate invalid XML content
         with patch.object(processor, "_read_xml_file", return_value="<invalid></invalid>"), \
                 patch("src.main.TCXReader.read", side_effect=Exception("bad file")):
             valid, data = processor._validate_tcx_file("fake.tcx")
@@ -141,25 +140,31 @@ class TestMain(unittest.TestCase):
             processor.run()
             mock_error.assert_any_call("No valid file path provided")
 
+    def test_tcx_processor_run_exception(self):
+        processor = TCXProcessor()
+        with patch.object(processor, "_get_sport_selection", side_effect=Exception("fail")), \
+                patch.object(processor.logger, "error") as mock_error:
+            with self.assertRaises(Exception) as context:
+                processor.run()
+            self.assertIn(
+                "An error occurred during processing", str(context.exception))
+            mock_error.assert_any_call("Process failed: %s", "fail")
+
     def test_tcx_processor_get_sport_selection(self):
         processor = TCXProcessor()
         with patch('src.main.questionary.select') as mock_select:
-            # Simulate user selecting "Run"
             mock_select.return_value.ask.return_value = "Run"
             sport = processor._get_sport_selection()
             self.assertEqual(sport, main_module.Sport.RUN)
 
-            # Simulate user selecting "Bike"
             mock_select.return_value.ask.return_value = "Bike"
             sport = processor._get_sport_selection()
             self.assertEqual(sport, main_module.Sport.BIKE)
 
-            # Simulate user selecting "Swim"
             mock_select.return_value.ask.return_value = "Swim"
             sport = processor._get_sport_selection()
             self.assertEqual(sport, main_module.Sport.SWIM)
 
-            # Simulate user selecting "Other"
             mock_select.return_value.ask.return_value = "Other"
             sport = processor._get_sport_selection()
             self.assertEqual(sport, main_module.Sport.OTHER)
