@@ -118,6 +118,29 @@ class TestMain(unittest.TestCase):
             mock_processor_cls.assert_called_once()
             mock_instance.run.assert_called_once()
 
+    def test_tcx_processor_run_success(self):
+        processor = TCXProcessor()
+        with patch.object(processor, "_get_sport_selection", return_value=main_module.Sport.BIKE), \
+                patch.object(processor, "_get_tcx_file_path", return_value="fake.tcx"), \
+                patch.object(processor, "_process_by_sport") as mock_process, \
+                patch.object(processor, "_format_xml_file") as mock_format, \
+                patch.object(processor.logger, "info") as mock_info:
+            processor.run()
+            mock_process.assert_called_once_with("fake.tcx")
+            mock_format.assert_called_once_with("fake.tcx")
+            self.assertIn(
+                ("Process completed successfully!",),
+                [call.args for call in mock_info.call_args_list]
+            )
+
+    def test_tcx_processor_run_no_file_path(self):
+        processor = TCXProcessor()
+        with patch.object(processor, "_get_sport_selection", return_value=main_module.Sport.BIKE), \
+                patch.object(processor, "_get_tcx_file_path", return_value=None), \
+                patch.object(processor.logger, "error") as mock_error:
+            processor.run()
+            mock_error.assert_any_call("No valid file path provided")
+
 
 if __name__ == '__main__':
     unittest.main()
