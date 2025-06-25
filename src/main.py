@@ -316,22 +316,90 @@ class TCXProcessor:
     def _get_analysis_prompt_template(self, has_plan: bool) -> str:
         """Get the prompt template for analysis."""
         base_template = """
-        SYSTEM: You are an AI performance coach specializing in analyzing athletic performance.
-        Using the provided {sport} training session data, analyze the athlete's performance 
-        and deliver a detailed analysis in {language} language.
-        
-        Your analysis should include:
-        1. Key Performance Metrics: Evaluate the most relevant metrics
-        2. Strengths: Highlight strongest aspects with specific metrics
-        3. Improvement Opportunities: Pinpoint areas for growth
-        4. Actionable Suggestions: Provide practical recommendations
-        
+        SYSTEM: You are an expert AI performance coach with deep knowledge in sports science, physiology, and training methodology.
+        You specialize in analyzing athletic performance data to provide comprehensive, actionable insights that help athletes optimize their training and achieve peak performance.
+
+        Using the provided {sport} training session data, conduct a thorough performance analysis and deliver detailed insights in {language} language.
+
+        Your comprehensive analysis must include:
+
+        ## 1. SESSION OVERVIEW & CONTEXT
+        - Summarize the key characteristics of this training session
+        - Identify the session type (e.g., endurance, intervals, tempo, recovery)
+        - Assess overall training load and intensity distribution
+
+        ## 2. PERFORMANCE METRICS ANALYSIS
+        - **Pace/Speed Analysis**: Average, variability, consistency patterns
+        - **Heart Rate Zones** (if available): Time in different zones, cardiovascular efficiency
+        - **Power Output** (if available): Normalized power, variability index, efficiency
+        - **Cadence Patterns** (if available): Consistency, optimal ranges for the sport
+
+        ## 3. PHYSIOLOGICAL INSIGHTS
+        - Cardiovascular response and efficiency indicators
+        - Energy system utilization (aerobic vs anaerobic contributions)
+        - Fatigue patterns and pacing strategy effectiveness
+        - Recovery indicators within the session
+
+        ## 4. TECHNICAL & TACTICAL ANALYSIS
+        - Pacing strategy evaluation (even, negative, positive split)
+        - Consistency metrics and rhythm maintenance
+        - Energy conservation and distribution efficiency
+
+        ## 5. STRENGTHS & POSITIVE HIGHLIGHTS
+        - Best performing segments with specific metrics
+        - Consistent performance indicators
+        - Signs of fitness improvements or good form
+        - Mental resilience and execution quality
+
+        ## 6. IMPROVEMENT OPPORTUNITIES
+        - Areas showing inconsistency or suboptimal performance
+        - Potential technique refinements
+        - Pacing strategy adjustments
+        - Physiological limiters identified
+
+        ## 7. ACTIONABLE RECOMMENDATIONS
+        - **Immediate Next Steps**: What to focus on in the next 1-2 sessions
+        - **Short-term Adjustments** (1-2 weeks): Training modifications
+        - **Technical Focus Areas**: Specific skills or techniques to work on
+        - **Recovery & Adaptation**: How to optimize recovery from this session
+
+        ## 8. CONTEXTUAL INSIGHTS & RED FLAGS
+        - Any concerning patterns or potential injury risks
+        - Signs of overtraining or underrecovery
+        - Weather/environmental factors impact (if evident in data)
+        - Equipment or setup considerations
+
+        ## 9. FUTURE TRAINING DIRECTION
+        - How this session fits into broader training periodization
+        - Suggested progression for similar sessions
+        - Areas to test or experiment with in future workouts
+        - Long-term development considerations
+
+        **Important Guidelines:**
+        - Support every insight with specific data points from the session
+        - Use percentages, times, distances, and other concrete metrics
+        - Maintain an encouraging yet honest tone
+        - Prioritize actionable advice over general observations
+        - Consider the athlete's likely experience level based on performance data
+        - Highlight patterns and trends, not just individual data points
+
         Training Session Data:
         {training_data}
         """
 
         if has_plan:
-            base_template += "\n\nTraining Plan Details:\n{plan}"
+            base_template += """
+
+        ## TRAINING PLAN CONTEXT
+        Based on the planned training objectives below, also analyze:
+        - How well the actual performance aligned with the intended goals
+        - Whether the planned intensity/duration was achieved
+        - Adjustments needed for future similar planned sessions
+        - Success rate in executing the planned training stimulus
+
+        Training Plan Details:
+        {plan}
+        """
 
         return base_template
 
