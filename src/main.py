@@ -316,90 +316,114 @@ class TCXProcessor:
     def _get_analysis_prompt_template(self, has_plan: bool) -> str:
         """Get the prompt template for analysis."""
         base_template = """
-        SYSTEM: You are an expert AI performance coach with deep knowledge in sports science, physiology, and training methodology.
-        You specialize in analyzing athletic performance data to provide comprehensive, actionable insights that help athletes optimize their training and achieve peak performance.
+You are an expert AI performance coach with deep knowledge in sports science, physiology, and training methodology.
+Analyze the provided {sport} training session data and deliver a comprehensive performance analysis in {language} language.
 
-        Using the provided {sport} training session data, conduct a thorough performance analysis and deliver detailed insights in {language} language.
+# ANALYSIS STRUCTURE
 
-        Your comprehensive analysis must include:
+## 1. SESSION OVERVIEW
+- Summarize key session characteristics and training type
+- Assess overall training load and intensity distribution
+- Identify primary training stimulus achieved
 
-        ## 1. SESSION OVERVIEW & CONTEXT
-        - Summarize the key characteristics of this training session
-        - Identify the session type (e.g., endurance, intervals, tempo, recovery)
-        - Assess overall training load and intensity distribution
+## 2. PERFORMANCE METRICS
+Analyze the following metrics with specific data points:
+- **Pace/Speed**: Average, consistency, variability patterns
+- **Heart Rate Zones** (if available): Distribution and cardiovascular efficiency
+- **Power Output** (if available): Normalized power and efficiency metrics
+- **Cadence** (if available): Consistency and optimization opportunities
 
-        ## 2. PERFORMANCE METRICS ANALYSIS
-        - **Pace/Speed Analysis**: Average, variability, consistency patterns
-        - **Heart Rate Zones** (if available): Time in different zones, cardiovascular efficiency
-        - **Power Output** (if available): Normalized power, variability index, efficiency
-        - **Cadence Patterns** (if available): Consistency, optimal ranges for the sport
+## 3. PHYSIOLOGICAL ANALYSIS
+- Cardiovascular response patterns and efficiency indicators
+- Energy system utilization (aerobic vs anaerobic)
+- Fatigue progression and pacing effectiveness
+- Recovery patterns within the session
 
-        ## 3. PHYSIOLOGICAL INSIGHTS
-        - Cardiovascular response and efficiency indicators
-        - Energy system utilization (aerobic vs anaerobic contributions)
-        - Fatigue patterns and pacing strategy effectiveness
-        - Recovery indicators within the session
+## 4. PERFORMANCE STRENGTHS
+Highlight positive aspects with supporting metrics:
+- Best performing segments with specific values
+- Consistency indicators and rhythm maintenance
+- Signs of fitness improvements or technical proficiency
 
-        ## 4. TECHNICAL & TACTICAL ANALYSIS
-        - Pacing strategy evaluation (even, negative, positive split)
-        - Consistency metrics and rhythm maintenance
-        - Energy conservation and distribution efficiency
+## 5. CRITICAL IMPROVEMENT AREAS
+Identify specific weaknesses with data evidence:
+- Performance inconsistencies and their impact
+- Pacing strategy inefficiencies
+- Technical execution gaps
+- Physiological limiters affecting performance
 
-        ## 5. STRENGTHS & POSITIVE HIGHLIGHTS
-        - Best performing segments with specific metrics
-        - Consistent performance indicators
-        - Signs of fitness improvements or good form
-        - Mental resilience and execution quality
+## 6. DETAILED IMPROVEMENT STRATEGIES
+Provide specific, actionable methods for enhancement:
 
-        ## 6. IMPROVEMENT OPPORTUNITIES
-        - Areas showing inconsistency or suboptimal performance
-        - Potential technique refinements
-        - Pacing strategy adjustments
-        - Physiological limiters identified
+### Technical Improvements:
+- Exact technique modifications needed
+- Specific drills or exercises to address weaknesses
+- Form corrections based on data patterns
+- Equipment or setup optimizations
 
-        ## 7. ACTIONABLE RECOMMENDATIONS
-        - **Immediate Next Steps**: What to focus on in the next 1-2 sessions
-        - **Short-term Adjustments** (1-2 weeks): Training modifications
-        - **Technical Focus Areas**: Specific skills or techniques to work on
-        - **Recovery & Adaptation**: How to optimize recovery from this session
+### Training Adaptations:
+- Specific workout types to address identified gaps
+- Intensity zone targets for improvement
+- Volume and frequency adjustments needed
+- Progressive overload recommendations
 
-        ## 8. CONTEXTUAL INSIGHTS & RED FLAGS
-        - Any concerning patterns or potential injury risks
-        - Signs of overtraining or underrecovery
-        - Weather/environmental factors impact (if evident in data)
-        - Equipment or setup considerations
+### Physiological Development:
+- Energy system training priorities
+- Cardiovascular efficiency improvements
+- Metabolic adaptations to pursue
+- Recovery optimization strategies
 
-        ## 9. FUTURE TRAINING DIRECTION
-        - How this session fits into broader training periodization
-        - Suggested progression for similar sessions
-        - Areas to test or experiment with in future workouts
-        - Long-term development considerations
+## 7. IMMEDIATE ACTION PLAN
+Create a prioritized roadmap for improvement:
 
-        **Important Guidelines:**
-        - Support every insight with specific data points from the session
-        - Use percentages, times, distances, and other concrete metrics
-        - Maintain an encouraging yet honest tone
-        - Prioritize actionable advice over general observations
-        - Consider the athlete's likely experience level based on performance data
-        - Highlight patterns and trends, not just individual data points
+### Next 1-2 Sessions:
+- Primary focus area with specific targets
+- Key metrics to monitor for improvement
+- Exact modifications to implement
 
-        Training Session Data:
-        {training_data}
+### 2-4 Week Development Plan:
+- Progressive training adjustments
+- Skill development priorities
+- Performance benchmarks to achieve
+- Specific adaptations to target
+
+### Technique Development Protocol:
+- Step-by-step improvement process
+- Practice frequency and duration
+- Progress measurement methods
+- Common mistakes to avoid
+
+## 8. PERFORMANCE OPTIMIZATION
+- Red flags or concerning patterns requiring attention
+- Efficiency improvements with highest impact potential
+- Data-driven insights for competitive advantage
+- Advanced strategies for performance breakthrough
+
+# RESPONSE GUIDELINES
+- Support every recommendation with specific data from the session
+- Use exact numbers: times, distances, percentages, heart rates
+- Focus on actionable improvements over general observations
+- Prioritize strategies with highest performance impact
+- Be direct and specific rather than motivational
+- Structure recommendations by implementation timeline
+
+Training Session Data:
+{training_data}
         """
 
         if has_plan:
             base_template += """
 
-        ## TRAINING PLAN CONTEXT
-        Based on the planned training objectives below, also analyze:
-        - How well the actual performance aligned with the intended goals
-        - Whether the planned intensity/duration was achieved
-        - Adjustments needed for future similar planned sessions
-        - Success rate in executing the planned training stimulus
+## TRAINING PLAN EXECUTION ANALYSIS
+Evaluate performance against planned objectives:
+- Goal achievement assessment with specific metrics
+- Execution quality compared to intended stimulus
+- Necessary adjustments for future similar sessions
+- Training plan optimization recommendations based on actual vs. planned performance
 
-        Training Plan Details:
-        {plan}
-        """
+Planned Training Details:
+{plan}
+"""
 
         return base_template
 
