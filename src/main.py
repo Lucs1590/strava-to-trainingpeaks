@@ -52,6 +52,7 @@ class TCXProcessor:
         load_dotenv()
         self.logger = self._setup_logging()
         self.config = ProcessingConfig()
+        self.sport: Optional[Sport] = None
 
     def _setup_logging(self) -> logging.Logger:
         logger = logging.getLogger(__name__)
