@@ -35,10 +35,11 @@ class SyncAgent:
         self.logger.addHandler(handler)
         self.langchain_agent = create_openai_functions_agent(
             llm=ChatOpenAI(openai_api_key=os.getenv("OPENAI_API_KEY")),
-            functions=[
+            tools=[
                 self.get_workouts_from_strava,
                 self.push_workouts_to_trainingpeaks
-            ]
+            ],
+            prompt="You are a Strava to TrainingPeaks sync agent. Your task is to retrieve workouts from Strava and push them to TrainingPeaks."
         )
 
     def get_workouts_from_strava(self, start_date, end_date):

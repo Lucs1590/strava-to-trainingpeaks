@@ -124,7 +124,8 @@ class TestMain(unittest.TestCase):
                 patch.object(processor, "_get_tcx_file_path", return_value="fake.tcx"), \
                 patch.object(processor, "_process_by_sport") as mock_process, \
                 patch.object(processor, "_format_xml_file") as mock_format, \
-                patch.object(processor.logger, "info") as mock_info:
+                patch.object(processor.logger, "info") as mock_info, \
+                patch("src.main.SyncAgent"):
             processor.run()
             mock_process.assert_called_once_with("fake.tcx")
             mock_format.assert_called_once_with("fake.tcx")
