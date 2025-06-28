@@ -21,6 +21,8 @@ from defusedxml.minidom import parseString
 from scipy.spatial.distance import squareform, pdist
 from tcxreader.tcxreader import TCXReader
 
+from src.sync_agent import SyncAgent
+
 
 class Sport(Enum):
     """Supported sports enumeration."""
@@ -69,6 +71,10 @@ class TCXProcessor:
             self._format_xml_file(file_path)
 
             self.logger.info("Process completed successfully!")
+
+            # Instantiate and run the SyncAgent
+            sync_agent = SyncAgent()
+            sync_agent.schedule_weekly_sync()
 
         except Exception as err:
             self.logger.error("Process failed: %s", str(err))
