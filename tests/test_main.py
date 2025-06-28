@@ -684,6 +684,69 @@ class TestMain(unittest.TestCase):
         # Check that the number of rows is less than or equal to the original (due to possible reduction)
         self.assertLessEqual(len(df), 100)
 
+    def test_remove_sparse_columns_removes_cadence(self):
+        processor = TrackpointProcessor(ProcessingConfig())
+        # cadence has 4/6 nulls (>= 3), should be removed
+        df = DataFrame({
+            "cadence": [None, None, None, 1, 2, 3],
+            "Speed_Kmh": [10, 11, 12, 13, 14, 15],
+            "Distance_Km": [1, 2, 3, 4, 5, 6],
+            "Time": [1, 2, 3, 4, 5, 6]
+        })
+        df2 = processor._remove_sparse_columns(df)
+        self.assertNotIn("cadence", df2.columns)
+        self.assertIn("Speed_Kmh", df2.columns)
+
+    def test_remove_sparse_columns_removes_hr_value(self):
+        processor = TrackpointProcessor(ProcessingConfig())
+        # hr_value has all nulls, should be removed
+        df = DataFrame({
+            "hr_value": [None, None, None, None],
+            "Speed_Kmh": [10, 11, 12, 13],
+            "Distance_Km": [1, 2, 3, 4],
+            "Time": [1, 2, 3, 4]
+        })
+        df2 = processor._remove_sparse_columns(df)
+        self.assertNotIn("hr_value", df2.columns)
+
+    def test_remove_sparse_columns_removes_lat_lon_together(self):
+        processor = TrackpointProcessor(ProcessingConfig())
+        # latitude and longitude both have >= threshold nulls, both should be dropped together
+        df = DataFrame({
+            "latitude": [None, None, 1, 2],
+            "longitude": [None, None, 3, 4],
+            "Speed_Kmh": [10, 11, 12, 13],
+            "Distance_Km": [1, 2, 3, 4],
+            "Time": [1, 2, 3, 4]
+        })
+        df2 = processor._remove_sparse_columns(df)
+        self.assertNotIn("latitude", df2.columns)
+        self.assertNotIn("longitude", df2.columns)
+
+    def test_remove_sparse_columns_does_not_remove_if_below_threshold(self):
+        processor = TrackpointProcessor(ProcessingConfig())
+        # Only 1 null in cadence, threshold is 2.5, so should not be removed
+        df = DataFrame({
+            "cadence": [None, 1, 2, 3, 4],
+            "Speed_Kmh": [10, 11, 12, 13, 14],
+            "Distance_Km": [1, 2, 3, 4, 5],
+            "Time": [1, 2, 3, 4, 5]
+        })
+        df2 = processor._remove_sparse_columns(df)
+        self.assertIn("cadence", df2.columns)
+
+    def test_remove_sparse_columns_handles_missing_columns(self):
+        processor = TrackpointProcessor(ProcessingConfig())
+        # DataFrame does not have any of the columns to check
+        df = DataFrame({
+            "Speed_Kmh": [10, 11, 12],
+            "Distance_Km": [1, 2, 3],
+            "Time": [1, 2, 3]
+        })
+        df2 = processor._remove_sparse_columns(df)
+        self.assertListEqual(list(df2.columns), [
+                             "Speed_Kmh", "Distance_Km", "Time"])
+
 
 if __name__ == '__main__':
     unittest.main()
