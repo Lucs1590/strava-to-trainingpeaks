@@ -437,6 +437,40 @@ class TestMain(unittest.TestCase):
                 "Failed to write XML file: %s", "write fail")
             self.assertIn("write fail", str(context.exception))
 
+    def test_validate_tcx_file_empty_file(self):
+        processor = TCXProcessor()
+        with patch.object(processor, "_read_xml_file", return_value="   "), \
+                patch.object(processor.logger, "error") as mock_error:
+            valid, data = processor._validate_tcx_file("empty.tcx")
+            self.assertFalse(valid)
+            self.assertIsNone(data)
+            mock_error.assert_called_with("The TCX file is empty")
+
+    def test_validate_tcx_file_valid(self):
+        processor = TCXProcessor()
+        mock_data = unittest.mock.Mock()
+        mock_data.distance = 1234
+        with patch.object(processor, "_read_xml_file", return_value="<xml></xml>"), \
+                patch("src.main.TCXReader.read", return_value=mock_data) as mock_read, \
+                patch.object(processor.logger, "info") as mock_info:
+            valid, data = processor._validate_tcx_file("valid.tcx")
+            self.assertTrue(valid)
+            self.assertEqual(data, mock_data)
+            mock_read.assert_called_once_with("valid.tcx")
+            mock_info.assert_called_with(
+                "TCX file is valid. Distance covered: %d meters", 1234
+            )
+
+    def test_validate_tcx_file_invalid(self):
+        processor = TCXProcessor()
+        with patch.object(processor, "_read_xml_file", return_value="<xml></xml>"), \
+                patch("src.main.TCXReader.read", side_effect=Exception("bad tcx")), \
+                patch.object(processor.logger, "error") as mock_error:
+            valid, data = processor._validate_tcx_file("invalid.tcx")
+            self.assertFalse(valid)
+            self.assertIsNone(data)
+            mock_error.assert_called_with("Invalid TCX file: %s", "bad tcx")
+
 
 if __name__ == '__main__':
     unittest.main()
