@@ -1,7 +1,9 @@
 import unittest
-from unittest.mock import patch, MagicMock
-from src.sync_agent import SyncAgent
+
 from datetime import datetime, timedelta
+from unittest.mock import patch, MagicMock
+
+from src.sync_agent import SyncAgent
 
 
 class TestSyncAgent(unittest.TestCase):
@@ -16,7 +18,8 @@ class TestSyncAgent(unittest.TestCase):
         agent = SyncAgent()
         start_date = datetime.now() - timedelta(days=7)
         end_date = datetime.now()
-        workouts = agent.get_workouts_from_strava("athlete_id", start_date, end_date)
+        workouts = agent.get_workouts_from_strava(
+            "athlete_id", start_date, end_date)
 
         self.assertEqual(len(workouts), 1)
         self.assertEqual(workouts[0]["name"], "Workout 1")
@@ -30,7 +33,8 @@ class TestSyncAgent(unittest.TestCase):
         agent = SyncAgent()
         start_date = datetime.now() - timedelta(days=7)
         end_date = datetime.now()
-        workouts = agent.get_workouts_from_strava("athlete_id", start_date, end_date)
+        workouts = agent.get_workouts_from_strava(
+            "athlete_id", start_date, end_date)
 
         self.assertEqual(len(workouts), 0)
 
@@ -65,7 +69,8 @@ class TestSyncAgent(unittest.TestCase):
         mock_get.return_value = mock_response
 
         agent = SyncAgent()
-        result = agent.handle_api_rate_limits(agent.get_workouts_from_strava, "athlete_id", datetime.now(), datetime.now())
+        result = agent.handle_api_rate_limits(
+            agent.get_workouts_from_strava, "athlete_id", datetime.now(), datetime.now())
 
         self.assertIsNotNone(result)
         self.assertEqual(result[0]["name"], "Workout 1")
