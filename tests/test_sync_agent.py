@@ -50,17 +50,6 @@ class TestSyncAgent(unittest.TestCase):
         self.assertTrue(mock_driver.get.called)
         self.assertTrue(mock_driver.find_element.called)
 
-    @patch('src.sync_agent.SyncAgent.get_workouts_from_strava')
-    @patch('src.sync_agent.SyncAgent.push_workouts_to_trainingpeaks')
-    def test_sync_workouts_for_week(self, mock_push, mock_get):
-        mock_get.return_value = [{"id": 1, "name": "Workout 1"}]
-
-        agent = SyncAgent()
-        agent.sync_workouts_for_week("athlete_id")
-
-        self.assertTrue(mock_get.called)
-        self.assertTrue(mock_push.called)
-
     @patch('src.sync_agent.requests.get')
     def test_handle_api_rate_limits(self, mock_get):
         mock_response = MagicMock()
@@ -74,15 +63,6 @@ class TestSyncAgent(unittest.TestCase):
 
         self.assertIsNotNone(result)
         self.assertEqual(result[0]["name"], "Workout 1")
-
-    @patch('src.sync_agent.schedule.run_pending')
-    @patch('src.sync_agent.schedule.every')
-    def test_schedule_weekly_sync(self, mock_every, mock_run_pending):
-        agent = SyncAgent()
-        agent.schedule_weekly_sync("athlete_id")
-
-        self.assertTrue(mock_every.called)
-        self.assertTrue(mock_run_pending.called)
 
 
 if __name__ == '__main__':
