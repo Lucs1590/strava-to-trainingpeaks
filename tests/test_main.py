@@ -398,6 +398,25 @@ class TestMain(unittest.TestCase):
             processor._process_by_sport("file.tcx")
         self.assertIn("Unsupported sport", str(context.exception))
 
+    def test_read_xml_file_success(self):
+        processor = TCXProcessor()
+        mock_content = "<xml>test</xml>"
+        with patch("builtins.open", unittest.mock.mock_open(read_data=mock_content)) as mock_open:
+            result = processor._read_xml_file("somefile.tcx")
+            mock_open.assert_called_once_with(
+                "somefile.tcx", "r", encoding='utf-8')
+            self.assertEqual(result, mock_content)
+
+    def test_read_xml_file_exception(self):
+        processor = TCXProcessor()
+        with patch("builtins.open", side_effect=IOError("fail to open")), \
+                patch.object(processor.logger, "error") as mock_error:
+            with self.assertRaises(Exception) as context:
+                processor._read_xml_file("badfile.tcx")
+            mock_error.assert_called_with(
+                "Failed to read XML file: %s", "fail to open")
+            self.assertIn("fail to open", str(context.exception))
+
 
 if __name__ == '__main__':
     unittest.main()
