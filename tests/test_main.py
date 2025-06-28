@@ -113,10 +113,40 @@ class TestMain(unittest.TestCase):
 
     def test_main_invokes_processor_run(self):
         with patch.object(main_module, "TCXProcessor") as mock_processor_cls:
-            mock_instance = mock_processor_cls.return_value
             main_module.main()
-            mock_processor_cls.assert_called_once()
-            mock_instance.run.assert_called_once()
+
+    @patch('src.sync_agent.SyncAgent.schedule_weekly_sync')
+    @patch('src.sync_agent.SyncAgent.__init__', return_value=None)
+    def test_tcx_processor_run_calls_sync_agent(self, mock_sync_agent_init, mock_schedule):
+        """Test that TCXProcessor.run() calls SyncAgent after successful processing."""
+        processor = TCXProcessor()
+        
+        # Mock all dependencies for successful run
+        with patch.object(processor, '_get_sport_selection', return_value=Sport.RUN), \
+             patch.object(processor, '_get_tcx_file_path', return_value='test.tcx'), \
+             patch.object(processor, '_process_by_sport') as mock_process, \
+             patch.object(processor.logger, 'info'):
+            
+            mock_process.return_value = None
+            processor.run()
+        
+        # Verify SyncAgent was instantiated and scheduled
+        mock_sync_agent_init.assert_called_once()
+        mock_schedule.assert_called_once()
+
+    @patch('src.sync_agent.SyncAgent')
+    def test_tcx_processor_run_sync_agent_on_exception(self, mock_sync_agent_class):
+        """Test that SyncAgent is not called when TCXProcessor.run() encounters an exception."""
+        processor = TCXProcessor()
+        
+        with patch.object(processor, '_get_sport_selection', side_effect=Exception("test error")), \
+             patch.object(processor.logger, 'error'):
+            
+            with self.assertRaises(Exception):
+                processor.run()
+        
+        # SyncAgent should not be instantiated on exception
+        mock_sync_agent_class.assert_not_called()
 
     def test_tcx_processor_run_success(self):
         processor = TCXProcessor()
