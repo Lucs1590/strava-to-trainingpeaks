@@ -38,10 +38,6 @@ class AnalysisConfig:
     training_plan: str
     language: str = "Portuguese (Brazil)"
 
-    # Instantiate and run the SyncAgent
-    sync_agent = SyncAgent()
-    sync_agent.schedule_weekly_sync()
-
 
 @dataclass
 class ProcessingConfig:
@@ -63,6 +59,9 @@ class TCXProcessor:
     def run(self) -> None:
         """Main execution flow."""
         try:
+            # Instantiate and run the SyncAgent
+            sync_agent = SyncAgent()
+            sync_agent.schedule_weekly_sync()
             self.sport = self._get_sport_selection()
             self.logger.info("Selected sport: %s", self.sport.value)
 
