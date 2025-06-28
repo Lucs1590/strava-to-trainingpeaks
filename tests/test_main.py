@@ -315,6 +315,28 @@ class TestMain(unittest.TestCase):
             mock_get_path.assert_called_once()
             self.assertEqual(result, "manual2.tcx")
 
+    def test_tcx_processor_get_file_path_from_user_valid(self):
+        processor = TCXProcessor()
+        with patch('src.main.questionary.path') as mock_path:
+            mock_ask = mock_path.return_value
+            mock_ask.ask.return_value = "valid.tcx"
+            result = processor._get_file_path_from_user()
+            mock_path.assert_called_once_with(
+                "Enter the path to the TCX file:",
+                validate=unittest.mock.ANY,
+                only_directories=False
+            )
+            self.assertEqual(result, "valid.tcx")
+
+    def test_tcx_processor_get_file_path_from_user_invalid(self):
+        processor = TCXProcessor()
+        # Simulate user cancelling or providing invalid input (returns None)
+        with patch('src.main.questionary.path') as mock_path:
+            mock_ask = mock_path.return_value
+            mock_ask.ask.return_value = None
+            result = processor._get_file_path_from_user()
+            self.assertIsNone(result)
+
 
 if __name__ == '__main__':
     unittest.main()
