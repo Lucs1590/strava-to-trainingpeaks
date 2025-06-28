@@ -1,36 +1,15 @@
-import os
-# import sys
+# pylint: disable=protected-access
 import unittest
 
 from unittest.mock import patch
+
+import numpy as np
 from pandas import DataFrame
 from tcxreader.tcxreader import TCXReader
 
-# sys.path.append(os.path.abspath(''))
-
+from src import main as main_module
 from src.main import (
-    download_tcx_file,
-    read_xml_file,
-    modify_xml_header,
-    write_xml_file,
-    format_to_swim,
-    validate_tcx_file,
-    indent_xml_file,
-    main,
-    ask_sport,
-    ask_file_location,
-    ask_activity_id,
-    ask_file_path,
-    get_latest_download,
-    validation,
-    ask_training_plan,
-    ask_desired_language,
-    ask_llm_analysis,
-    perform_llm_analysis,
-    preprocess_trackpoints_data,
-    run_euclidean_dist_deletion,
-    remove_null_columns,
-    check_openai_key
+    TrackpointProcessor, ProcessingConfig, TCXProcessor
 )
 
 
@@ -40,359 +19,847 @@ class TestMain(unittest.TestCase):
         self.running_example_data = tcx_reader.read("assets/run.tcx")
         self.biking_example_data = tcx_reader.read("assets/bike.tcx")
 
-    @patch('src.main.webbrowser.open')
-    def test_download_tcx_file(self, mock_open):
-        # Test for sport "Swim"
-        activity_id = "12345"
-        sport = "Swim"
-        expected_url = "https://www.strava.com/activities/12345/export_original"
+    def test_trackpoint_processor_create_dataframe(self):
+        tcx_data = self.running_example_data
+        processor = TrackpointProcessor(ProcessingConfig())
+        df = processor._create_dataframe(tcx_data)
+        self.assertIsInstance(df, DataFrame)
+        self.assertIn("Distance_Km", df.columns)
+        self.assertIn("Time", df.columns)
 
-        download_tcx_file(activity_id, sport)
+    def test_trackpoint_processor_clean_and_transform(self):
+        tcx_data = self.running_example_data
+        processor = TrackpointProcessor(ProcessingConfig())
+        df = processor._create_dataframe(tcx_data)
+        df_clean = processor._clean_and_transform(df)
+        self.assertIn("Pace", df_clean.columns)
+        self.assertFalse(df_clean.isnull().any().any())
 
-        mock_open.assert_called_once_with(expected_url)
+    def test_trackpoint_processor_remove_sparse_columns(self):
+        processor = TrackpointProcessor(ProcessingConfig())
+        df = DataFrame({
+            "cadence": [None, None, None, 1, 2, 3],
+            "hr_value": [None, None, None, None, None, None],
+            "latitude": [1, 2, 3, 4, 5, 6],
+            "longitude": [1, 2, 3, 4, 5, 6],
+            "Speed_Kmh": [10, 11, 12, 13, 14, 15],
+            "Distance_Km": [1, 2, 3, 4, 5, 6],
+            "Time": [1, 2, 3, 4, 5, 6]
+        })
+        df2 = processor._remove_sparse_columns(df)
+        self.assertNotIn("hr_value", df2.columns)
 
-        # Test for sport "Run"
-        activity_id = "67890"
-        sport = "Run"
-        expected_url = "https://www.strava.com/activities/67890/export_tcx"
+    def test_trackpoint_processor_reduce_data_size(self):
+        processor = TrackpointProcessor(ProcessingConfig())
+        df = DataFrame({
+            "Speed_Kmh": np.random.rand(1200),
+            "Distance_Km": np.arange(1200),
+            "Time": np.arange(1200)
+        })
+        reduced_df = processor._reduce_data_size(df)
+        self.assertLess(len(reduced_df), len(df))
 
-        download_tcx_file(activity_id, sport)
+    def test_trackpoint_processor_format_time_column(self):
+        processor = TrackpointProcessor(ProcessingConfig())
+        df = DataFrame({
+            "Time": [1_600_000_000, 1_600_000_100],
+            "Speed_Kmh": [10, 12],
+            "Distance_Km": [1, 2]
+        })
+        formatted_df = processor._format_time_column(df)
+        self.assertRegex(
+            formatted_df["Time"].iloc[0], r"\d{2}:\d{2}:\d{2}")
 
-        mock_open.assert_called_with(expected_url)
+    def test_tcx_processor_get_analysis_prompt_template(self):
+        processor = TCXProcessor()
+        prompt_no_plan = processor._get_analysis_prompt_template(False)
+        self.assertIn("ANALYSIS STRUCTURE", prompt_no_plan)
+        prompt_with_plan = processor._get_analysis_prompt_template(True)
+        self.assertIn("TRAINING PLAN EXECUTION ANALYSIS", prompt_with_plan)
 
-    @patch('src.main.webbrowser.open')
-    def test_download_tcx_file_error(self, mock_open):
-        activity_id = "12345"
-        sport = "Other"
-        mock_open.side_effect = Exception("Error")
+    def test_tcx_processor_validate_tcx_file_empty(self):
+        processor = TCXProcessor()
+        with patch.object(processor, "_read_xml_file", return_value=""):
+            valid, data = processor._validate_tcx_file("fake.tcx")
+            self.assertFalse(valid)
+            self.assertIsNone(data)
 
-        with self.assertRaises(ValueError):
-            download_tcx_file(activity_id, sport)
+    def test_tcx_processor_validate_tcx_file_invalid(self):
+        processor = TCXProcessor()
+        with patch.object(processor, "_read_xml_file", return_value="<invalid></invalid>"), \
+                patch("src.main.TCXReader.read", side_effect=Exception("bad file")):
+            valid, data = processor._validate_tcx_file("fake.tcx")
+            self.assertFalse(valid)
+            self.assertIsNone(data)
 
-    def test_read_xml_file(self):
-        file_path = "assets/bike.tcx"
-        content = read_xml_file(file_path)
-
-        self.assertIn(
-            '<?xml version="1.0" encoding="UTF-8"?>',
-            content
-        )
-
-    def test_modify_xml_header(self):
-        xml_str = """<TrainingCenterDatabase xmlns="http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2">"""
-        result = modify_xml_header(xml_str)
-
-        self.assertIn(
-            "http://www.w3.org/2001/XMLSchema-instance",
-            result
-        )
-
-    def test_write_xml_file(self):
-        file_path = "assets/test.xml"
-        xml_str = "<root><element>Test</element></root>"
-
-        write_xml_file(file_path, xml_str)
-
-        with open(file_path, "r", encoding='utf-8') as xml_file:
-            content = xml_file.read()
-
-        self.assertEqual(content, xml_str)
-
-    @patch('src.main.write_xml_file')
-    def test_format_to_swim(self, mock_write):
-        file_path = "assets/swim.tcx"
-        format_to_swim(file_path)
-
-        mock_write.assert_called_once()
-        self.assertTrue(mock_write.called)
-
-    def test_validate_tcx_file(self):
-        file_path = "assets/bike.tcx"
-        result = validate_tcx_file(file_path)
-        self.assertTrue(result)
-        self.assertEqual(len(result), 2)
-
-    def test_validate_tcx_file_error(self):
-        file_path = "assets/swim.tcx"
-
-        with self.assertRaises(ValueError):
-            validate_tcx_file(file_path)
-
-    @patch('src.main.read_xml_file')
-    def test_validate_tcx_file_error_no_file(self, mock_read):
-        file_path = "assets/test.xml"
-        mock_read.return_value = ""
-
-        with self.assertRaises(ValueError):
-            validate_tcx_file(file_path)
-
-    def test_indent_xml_file(self):
-        file_path = "assets/test.xml"
-        indent_xml_file(file_path)
-
-        with open(file_path, "r", encoding='utf-8') as xml_file:
-            content = xml_file.read()
-
-        self.assertIn(
-            "<root>",
-            content
-        )
-
-    def test_indent_xml_file_error(self):
-        file_path = "assets/test.xml"
-
-        with patch('src.main.parseString') as mock_parse_string:
-            mock_parse_string.return_value = Exception("Error")
-            indent_xml_file(file_path)
-
-        self.assertTrue(mock_parse_string.called)
-
-    @patch('src.main.check_openai_key')
-    @patch('src.main.get_latest_download')
-    @patch('src.main.ask_sport')
-    @patch('src.main.ask_file_location')
-    @patch('src.main.ask_activity_id')
-    @patch('src.main.download_tcx_file')
-    @patch('src.main.format_to_swim')
-    @patch('src.main.validate_tcx_file')
-    @patch('src.main.indent_xml_file')
-    def test_main(self, mock_indent, mock_validate, mock_format, mock_download, mock_ask_id,
-                  mock_ask_location, mock_ask_sport, mock_latest_download, mock_openai_key):
-        mock_ask_sport.return_value = "Swim"
-        mock_ask_location.return_value = "Download"
-        mock_ask_id.return_value = "12345"
-        mock_latest_download.return_value = "assets/swim.tcx"
-        mock_openai_key.return_value = None
-
-        main()
-
-        mock_ask_sport.assert_called_once()
-        mock_ask_location.assert_called_once()
-        mock_ask_id.assert_called_once()
-        mock_latest_download.assert_called_once()
-        mock_download.assert_called_once_with("12345", "Swim")
-        mock_format.assert_called_once_with("assets/swim.tcx")
-        mock_validate.assert_not_called()
-        mock_indent.assert_called_once_with("assets/swim.tcx")
-
-    @patch('src.main.check_openai_key')
-    @patch('src.main.ask_sport')
-    @patch('src.main.ask_file_location')
-    @patch('src.main.ask_activity_id')
-    @patch('src.main.download_tcx_file')
-    @patch('src.main.get_latest_download')
-    @patch('src.main.format_to_swim')
-    @patch('src.main.validate_tcx_file')
-    @patch('src.main.indent_xml_file')
-    def test_main_invalid_sport(self, mock_indent, mock_validate, mock_format, mock_latest_download, mock_download,
-                                mock_ask_id, mock_ask_location, mock_ask_sport, mock_openai_key):
-        mock_openai_key.return_value = None
-        mock_ask_sport.return_value = "InvalidSport"
-        mock_ask_location.return_value = "Download"
-        mock_ask_id.return_value = "12345"
-        mock_latest_download.return_value = "assets/swim.tcx"
-
-        with self.assertRaises(ValueError):
-            main()
-
-        mock_ask_sport.assert_called_once()
-        mock_ask_location.assert_called_once()
-        mock_ask_id.assert_called_once()
-        mock_latest_download.assert_called_once()
-        mock_download.assert_called_once()
-        mock_format.assert_not_called()
-        mock_validate.assert_not_called()
-        mock_indent.assert_not_called()
-
-    @patch('src.main.check_openai_key')
-    @patch('src.main.ask_desired_language')
-    @patch('src.main.ask_training_plan')
-    @patch('src.main.perform_llm_analysis')
-    @patch('src.main.ask_llm_analysis')
-    @patch('src.main.ask_sport')
-    @patch('src.main.ask_file_location')
-    @patch('src.main.ask_activity_id')
-    @patch('src.main.download_tcx_file')
-    @patch('src.main.ask_file_path')
-    @patch('src.main.format_to_swim')
-    @patch('src.main.validate_tcx_file')
-    @patch('src.main.indent_xml_file')
-    def test_main_bike_sport(self, mock_indent, mock_validate, mock_format, mock_ask_path, mock_download,
-                             mock_ask_id, mock_ask_location, mock_ask_sport, mock_llm_analysis, mock_perform_llm,
-                             mock_training_plan, mock_language, mock_openai_key):
-        mock_ask_sport.return_value = "Bike"
-        mock_ask_location.return_value = "Local"
-        mock_ask_path.return_value = "assets/bike.tcx"
-        mock_llm_analysis.return_value = True
-        mock_validate.return_value = True, "TCX Data"
-        mock_perform_llm.return_value = "Training Plan"
-        mock_training_plan.return_value = ""
-        mock_language.return_value = "Portuguese"
-        mock_openai_key.return_value = None
-
-        main()
-
-        mock_ask_sport.assert_called_once()
-        mock_ask_location.assert_called_once()
-        mock_ask_id.assert_not_called()
-        mock_ask_path.assert_called_once()
-        mock_download.assert_not_called()
-        mock_format.assert_not_called()
-        mock_llm_analysis.assert_called_once()
-        mock_perform_llm.assert_called_once()
-        mock_validate.assert_called_once_with("assets/bike.tcx")
-        mock_indent.assert_called_once_with("assets/bike.tcx")
-
-    def test_ask_sport(self):
-        with patch('src.main.questionary.select') as mock_select:
-            mock_select.return_value.ask.return_value = "Bike"
-            result = ask_sport()
-            mock_select.assert_called_once_with(
-                "Which sport do you want to export to TrainingPeaks?",
-                choices=["Bike", "Run", "Swim", "Other"]
-            )
-            self.assertEqual(result, "Bike")
-
-    def test_ask_file_location(self):
-        with patch('src.main.questionary.select') as mock_select:
-            mock_select.return_value.ask.return_value = "Download"
-            result = ask_file_location()
-            mock_select.assert_called_once_with(
-                "Do you want to download the TCX file from Strava or provide the file path?",
-                choices=["Download", "Provide path"]
-            )
-            self.assertEqual(result, "Download")
-
-    def test_ask_activity_id(self):
-        with patch('src.main.questionary.text') as mock_text:
-            mock_text.return_value.ask.return_value = "1234"
-            result = ask_activity_id()
-            mock_text.assert_called_once_with(
-                "Enter the Strava activity ID you want to export to TrainingPeaks:"
-            )
-            self.assertEqual(result, "1234")
-
-    def test_ask_file_path(self):
-        with patch('src.main.questionary.path') as mock_path:
-            mock_path.return_value.ask.return_value = "assets/test.tcx"
-            result = ask_file_path("Provide path")
-            mock_path.assert_called_once_with(
-                "Enter the path to the TCX file:",
-                validate=validation,
-                only_directories=False
-            )
-            self.assertEqual(result, "assets/test.tcx")
-
-            mock_path.reset_mock()
-
-            mock_path.return_value.ask.return_value = "assets/downloaded.tcx"
-            result = ask_file_path("Download")
-            mock_path.assert_called_once_with(
-                "Check if the TCX was downloaded and validate the file:",
-                validate=validation,
-                only_directories=False
-            )
-            self.assertEqual(result, "assets/downloaded.tcx")
-
-    @patch('src.main.ask_file_path')
-    def test_get_latest_downloads_with_ask(self, mock_ask_path):
-        mock_ask_path.return_value = "assets/bike.tcx"
-        result = get_latest_download()
-
-        self.assertEqual(result, "assets/bike.tcx")
-
-    def test_validation(self):
-        file_path = "assets/bike.tcx"
-        result = validation(file_path)
-
-        self.assertTrue(result)
-
-    def test_ask_training_plan(self):
-        with patch('src.main.questionary.text') as mock_text:
-            mock_text.return_value.ask.return_value = ""
-            result = ask_training_plan()
-            mock_text.assert_called_once_with(
-                "Was there anything planned for this training?"
-            )
-            self.assertEqual(result, "")
-
-    def test_ask_desired_language(self):
-        with patch('src.main.questionary.text') as mock_text:
-            mock_text.return_value.ask.return_value = "Portuguese"
-            result = ask_desired_language()
-            mock_text.assert_called_once_with(
-                'In which language do you want the analysis to be provided? (Default is Portuguese)',
-                default='Portuguese (Brazil)'
-            )
-            self.assertEqual(result, "Portuguese")
-
-    def test_ask_llm_analysis(self):
+    def test_tcx_processor_should_perform_ai_analysis(self):
+        processor = TCXProcessor()
         with patch('src.main.questionary.confirm') as mock_confirm:
             mock_confirm.return_value.ask.return_value = True
-            result = ask_llm_analysis()
-            mock_confirm.assert_called_once_with(
-                "Do you want to perform AI analysis?",
-                default=False
+            self.assertTrue(processor._should_perform_ai_analysis())
+            mock_confirm.return_value.ask.return_value = False
+            self.assertFalse(processor._should_perform_ai_analysis())
+
+    def test_tcx_processor_format_swim_tcx(self):
+        processor = TCXProcessor()
+        xml = '<TrainingCenterDatabase xmlns="http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2"><Activity Sport="Swim"><Value>123.0</Value></Activity></TrainingCenterDatabase>'
+        with patch.object(processor, "_read_xml_file", return_value=xml), \
+                patch.object(processor, "_write_xml_file") as mock_write:
+            processor._format_swim_tcx("fake.tcx")
+            args = mock_write.call_args[0][1]
+            self.assertIn("xsi:schemaLocation", args)
+            self.assertIn('<Activity Sport="Other">', args)
+            self.assertIn("<Value>123</Value>", args)
+
+    def test_main_invokes_processor_run(self):
+        with patch.object(main_module, "TCXProcessor") as mock_processor_cls:
+            mock_instance = mock_processor_cls.return_value
+            main_module.main()
+            mock_processor_cls.assert_called_once()
+            mock_instance.run.assert_called_once()
+
+    def test_tcx_processor_run_success(self):
+        processor = TCXProcessor()
+        with patch.object(processor, "_get_sport_selection", return_value=main_module.Sport.BIKE), \
+                patch.object(processor, "_get_tcx_file_path", return_value="fake.tcx"), \
+                patch.object(processor, "_process_by_sport") as mock_process, \
+                patch.object(processor, "_format_xml_file") as mock_format, \
+                patch.object(processor.logger, "info") as mock_info:
+            processor.run()
+            mock_process.assert_called_once_with("fake.tcx")
+            mock_format.assert_called_once_with("fake.tcx")
+            self.assertIn(
+                ("Process completed successfully!",),
+                [call.args for call in mock_info.call_args_list]
             )
-            self.assertTrue(result)
 
-    def test_check_openai_api_key(self):
-        with patch('src.main.os.getenv') as mock_getenv:
-            mock_getenv.return_value = "API_KEY"
-            check_openai_key()
-            self.assertTrue(mock_getenv.called)
-            self.assertEqual(os.getenv("OPENAI_API_KEY"), "API_KEY")
+    def test_tcx_processor_run_no_file_path(self):
+        processor = TCXProcessor()
+        with patch.object(processor, "_get_sport_selection", return_value=main_module.Sport.BIKE), \
+                patch.object(processor, "_get_tcx_file_path", return_value=None), \
+                patch.object(processor.logger, "error") as mock_error:
+            processor.run()
+            mock_error.assert_any_call("No valid file path provided")
 
-    @patch('src.main.os.getenv')
-    @patch('src.main.questionary.password')
-    @patch('builtins.open', new_callable=unittest.mock.mock_open)
-    def test_check_openai_api_key_empty(self, mock_open, mock_text, mock_getenv):
-        mock_text.return_value.ask.return_value = "API_KEY"
-        mock_getenv.return_value = None
-        mock_open.return_value.write.return_value = "API_KEY"
-        check_openai_key()
-        mock_text.assert_called_once_with('Enter your OpenAI API key:')
-        self.assertTrue(mock_open.called)
-        self.assertTrue(mock_text.called)
+    def test_tcx_processor_run_exception(self):
+        processor = TCXProcessor()
+        with patch.object(processor, "_get_sport_selection", side_effect=Exception("fail")), \
+                patch.object(processor.logger, "error") as mock_error:
+            with self.assertRaises(Exception) as context:
+                processor.run()
+            self.assertIn(
+                "An error occurred during processing", str(context.exception))
+            mock_error.assert_any_call("Process failed: %s", "fail")
 
-    @patch('src.main.ChatOpenAI')
-    def test_perform_llm_analysis(self, mock_chat):
-        mock_invoke = mock_chat.return_value.invoke.return_value
-        mock_invoke.content = "Training Plan"
-        tcx_data = self.running_example_data
-        sport = "Run"
-        plan = "Training Plan"
-        lang = "Portuguese"
+    def test_tcx_processor_get_sport_selection(self):
+        processor = TCXProcessor()
+        with patch('src.main.questionary.select') as mock_select:
+            mock_select.return_value.ask.return_value = "Run"
+            sport = processor._get_sport_selection()
+            self.assertEqual(sport, main_module.Sport.RUN)
 
-        result = perform_llm_analysis(tcx_data, sport, plan, lang)
-        self.assertEqual(result, "Training Plan")
+            mock_select.return_value.ask.return_value = "Bike"
+            sport = processor._get_sport_selection()
+            self.assertEqual(sport, main_module.Sport.BIKE)
 
-    def test_preprocess_running_trackpoints_data(self):
-        tcx_data = self.running_example_data
-        result = preprocess_trackpoints_data(tcx_data)
-        self.assertEqual(len(result), 1646)
+            mock_select.return_value.ask.return_value = "Swim"
+            sport = processor._get_sport_selection()
+            self.assertEqual(sport, main_module.Sport.SWIM)
 
-    def test_preprocess_biking_trackpoints_data(self):
-        tcx_data = self.biking_example_data
-        result = preprocess_trackpoints_data(tcx_data)
-        self.assertEqual(len(result), 2028)
+            mock_select.return_value.ask.return_value = "Other"
+            sport = processor._get_sport_selection()
+            self.assertEqual(sport, main_module.Sport.OTHER)
 
-    def test_remove_null_columns(self):
-        dataframe = DataFrame({
-            'latitude': [1, 2, 3, 3.5, 4, 5, 6, 6.5, 7, 8, 9],
-            'longitude': [1, 2, 3, 3.5, 4, 5, 6, 6.5, 7, 8, 9],
-            'hr_value': [None] * 11
+    def test_tcx_processor_get_tcx_file_path_download(self):
+        processor = TCXProcessor()
+        with patch('src.main.questionary.select') as mock_select, \
+                patch.object(processor, "_handle_download_flow", return_value="downloaded.tcx") as mock_download:
+            mock_select.return_value.ask.return_value = "Download"
+            result = processor._get_tcx_file_path()
+            mock_download.assert_called_once()
+            self.assertEqual(result, "downloaded.tcx")
+
+    def test_tcx_processor_get_tcx_file_path_provide_path(self):
+        processor = TCXProcessor()
+        with patch('src.main.questionary.select') as mock_select, \
+                patch.object(processor, "_get_file_path_from_user", return_value="provided.tcx") as mock_get_path:
+            mock_select.return_value.ask.return_value = "Provide path"
+            result = processor._get_tcx_file_path()
+            mock_get_path.assert_called_once()
+            self.assertEqual(result, "provided.tcx")
+
+    def test_tcx_processor_handle_download_flow(self):
+        processor = TCXProcessor()
+        with patch.object(processor, "_get_activity_id", return_value="123456") as mock_get_id, \
+                patch.object(processor, "_download_tcx_file") as mock_download, \
+                patch("time.sleep") as mock_sleep, \
+                patch.object(processor, "_get_latest_download", return_value="latest.tcx") as mock_latest, \
+                patch.object(processor.logger, "info") as mock_info:
+            result = processor._handle_download_flow()
+            mock_get_id.assert_called_once()
+            mock_download.assert_called_once_with("123456")
+            mock_sleep.assert_called_once_with(3)
+            mock_latest.assert_called_once()
+            self.assertEqual(result, "latest.tcx")
+            info_calls = [call.args[0] for call in mock_info.call_args_list]
+            self.assertTrue(
+                any("Selected activity ID" in msg for msg in info_calls)
+            )
+            self.assertTrue(
+                any("Downloading the TCX file from Strava" in msg for msg in info_calls)
+            )
+            self.assertTrue(
+                any("Automatically detected downloaded file path" in msg for msg in info_calls)
+            )
+
+    def test_tcx_processor_get_activity_id_valid(self):
+        processor = TCXProcessor()
+        with patch('src.main.questionary.text') as mock_text:
+            mock_text.return_value.ask.return_value = "123456"
+            result = processor._get_activity_id()
+            self.assertEqual(result, "123456")
+
+            mock_text.return_value.ask.return_value = "abc123def"
+            result = processor._get_activity_id()
+            self.assertEqual(result, "123")
+
+            mock_text.return_value.ask.return_value = "12-34-56"
+            result = processor._get_activity_id()
+            self.assertEqual(result, "123456")
+
+    def test_tcx_processor_get_activity_id_invalid(self):
+        processor = TCXProcessor()
+        with patch('src.main.questionary.text') as mock_text:
+            mock_text.return_value.ask.return_value = "abc"
+            with self.assertRaises(ValueError) as context:
+                processor._get_activity_id()
+            self.assertIn("Invalid activity ID provided",
+                          str(context.exception))
+
+            mock_text.return_value.ask.return_value = ""
+            with self.assertRaises(ValueError):
+                processor._get_activity_id()
+
+    def test_tcx_processor_download_tcx_file_bike(self):
+        processor = TCXProcessor()
+        processor.sport = main_module.Sport.BIKE
+        with patch("src.main.webbrowser.open") as mock_open:
+            processor._download_tcx_file("123456")
+            mock_open.assert_called_once_with(
+                "https://www.strava.com/activities/123456/export_tcx")
+
+    def test_tcx_processor_download_tcx_file_swim(self):
+        processor = TCXProcessor()
+        processor.sport = main_module.Sport.SWIM
+        with patch("src.main.webbrowser.open") as mock_open:
+            processor._download_tcx_file("654321")
+            mock_open.assert_called_once_with(
+                "https://www.strava.com/activities/654321/export_original")
+
+    def test_tcx_processor_download_tcx_file_other(self):
+        processor = TCXProcessor()
+        processor.sport = main_module.Sport.OTHER
+        with patch("src.main.webbrowser.open") as mock_open:
+            processor._download_tcx_file("111222")
+            mock_open.assert_called_once_with(
+                "https://www.strava.com/activities/111222/export_original")
+
+    def test_tcx_processor_download_tcx_file_exception(self):
+        processor = TCXProcessor()
+        processor.sport = main_module.Sport.BIKE
+        with patch("src.main.webbrowser.open", side_effect=Exception("browser fail")), \
+                patch.object(processor.logger, "error") as mock_error:
+            with self.assertRaises(ValueError) as context:
+                processor._download_tcx_file("123456")
+            self.assertIn("Error opening the browser", str(context.exception))
+            mock_error.assert_called_with(
+                "Failed to download the TCX file from Strava")
+
+    def test_tcx_processor_get_latest_download_with_files(self):
+        processor = TCXProcessor()
+        mock_file1 = unittest.mock.Mock()
+        mock_file2 = unittest.mock.Mock()
+        mock_file1.stat.return_value.st_mtime = 100
+        mock_file2.stat.return_value.st_mtime = 200
+        with patch("src.main.Path.home") as mock_home:
+            mock_downloads = unittest.mock.Mock()
+            mock_home.return_value.__truediv__.return_value = mock_downloads
+            mock_downloads.glob.return_value = [mock_file1, mock_file2]
+            result = processor._get_latest_download()
+            self.assertEqual(result, str(mock_file2))
+
+    def test_tcx_processor_get_latest_download_no_files(self):
+        processor = TCXProcessor()
+        with patch("src.main.Path.home") as mock_home, \
+                patch.object(processor, "_get_file_path_from_user", return_value="manual.tcx") as mock_get_path, \
+                patch.object(processor.logger, "warning") as mock_warning:
+            mock_downloads = unittest.mock.Mock()
+            mock_home.return_value.__truediv__.return_value = mock_downloads
+            mock_downloads.glob.return_value = []
+            result = processor._get_latest_download()
+            mock_warning.assert_called_with(
+                "No TCX file found in Downloads folder")
+            mock_get_path.assert_called_once()
+            self.assertEqual(result, "manual.tcx")
+
+    def test_tcx_processor_get_latest_download_exception(self):
+        processor = TCXProcessor()
+        with patch("src.main.Path.home") as mock_home, \
+                patch.object(processor, "_get_file_path_from_user", return_value="manual2.tcx") as mock_get_path, \
+                patch.object(processor.logger, "warning") as mock_warning:
+            mock_downloads = unittest.mock.Mock()
+            mock_home.return_value.__truediv__.return_value = mock_downloads
+            mock_downloads.glob.side_effect = Exception("fail")
+            result = processor._get_latest_download()
+            mock_warning.assert_called_with(
+                "No TCX file found in Downloads folder")
+            mock_get_path.assert_called_once()
+            self.assertEqual(result, "manual2.tcx")
+
+    def test_tcx_processor_get_file_path_from_user_valid(self):
+        processor = TCXProcessor()
+        with patch('src.main.questionary.path') as mock_path:
+            mock_ask = mock_path.return_value
+            mock_ask.ask.return_value = "valid.tcx"
+            result = processor._get_file_path_from_user()
+            mock_path.assert_called_once_with(
+                "Enter the path to the TCX file:",
+                validate=unittest.mock.ANY,
+                only_directories=False
+            )
+            self.assertEqual(result, "valid.tcx")
+
+    def test_tcx_processor_get_file_path_from_user_invalid(self):
+        processor = TCXProcessor()
+        # Simulate user cancelling or providing invalid input (returns None)
+        with patch('src.main.questionary.path') as mock_path:
+            mock_ask = mock_path.return_value
+            mock_ask.ask.return_value = None
+            result = processor._get_file_path_from_user()
+            self.assertIsNone(result)
+
+    def test_process_by_sport_swim(self):
+        processor = TCXProcessor()
+        processor.sport = main_module.Sport.SWIM
+        with patch.object(processor.logger, "info") as mock_info, \
+                patch.object(processor, "_format_swim_tcx") as mock_format:
+            processor._process_by_sport("swim.tcx")
+            mock_info.assert_any_call(
+                "Formatting the TCX file for TrainingPeaks import")
+            mock_format.assert_called_once_with("swim.tcx")
+
+    def test_process_by_sport_other(self):
+        processor = TCXProcessor()
+        processor.sport = main_module.Sport.OTHER
+        with patch.object(processor.logger, "info") as mock_info, \
+                patch.object(processor, "_format_swim_tcx") as mock_format:
+            processor._process_by_sport("other.tcx")
+            mock_info.assert_any_call(
+                "Formatting the TCX file for TrainingPeaks import")
+            mock_format.assert_called_once_with("other.tcx")
+
+    def test_process_by_sport_bike_valid_no_ai(self):
+        processor = TCXProcessor()
+        processor.sport = main_module.Sport.BIKE
+        with patch.object(processor.logger, "info") as mock_info, \
+                patch.object(processor, "_validate_tcx_file", return_value=(True, "tcx_data")) as mock_validate, \
+                patch.object(processor, "_should_perform_ai_analysis", return_value=False) as mock_ai:
+            processor._process_by_sport("bike.tcx")
+            mock_info.assert_any_call("Validating the TCX file")
+            mock_validate.assert_called_once_with("bike.tcx")
+            mock_ai.assert_called_once()
+
+    def test_process_by_sport_run_valid_with_ai(self):
+        processor = TCXProcessor()
+        processor.sport = main_module.Sport.RUN
+        with patch.object(processor.logger, "info") as mock_info, \
+                patch.object(processor, "_validate_tcx_file", return_value=(True, "tcx_data")) as mock_validate, \
+                patch.object(processor, "_should_perform_ai_analysis", return_value=True) as mock_ai, \
+                patch.object(processor, "_perform_ai_analysis") as mock_perform_ai:
+            processor._process_by_sport("run.tcx")
+            mock_info.assert_any_call("Validating the TCX file")
+            mock_validate.assert_called_once_with("run.tcx")
+            mock_ai.assert_called_once()
+            mock_perform_ai.assert_called_once_with(
+                "tcx_data", main_module.Sport.RUN)
+
+    def test_process_by_sport_invalid_tcx(self):
+        processor = TCXProcessor()
+        processor.sport = main_module.Sport.BIKE
+        with patch.object(processor.logger, "info"), \
+                patch.object(processor, "_validate_tcx_file", return_value=(False, None)):
+            with self.assertRaises(ValueError) as context:
+                processor._process_by_sport("invalid.tcx")
+            self.assertIn("Invalid TCX file", str(context.exception))
+
+    def test_process_by_sport_unsupported(self):
+        processor = TCXProcessor()
+        processor.sport = None  # Not a valid Sport
+        with self.assertRaises(ValueError) as context:
+            processor._process_by_sport("file.tcx")
+        self.assertIn("Unsupported sport", str(context.exception))
+
+    def test_read_xml_file_success(self):
+        processor = TCXProcessor()
+        mock_content = "<xml>test</xml>"
+        with patch("builtins.open", unittest.mock.mock_open(read_data=mock_content)) as mock_open:
+            result = processor._read_xml_file("somefile.tcx")
+            mock_open.assert_called_once_with(
+                "somefile.tcx", "r", encoding='utf-8')
+            self.assertEqual(result, mock_content)
+
+    def test_read_xml_file_exception(self):
+        processor = TCXProcessor()
+        with patch("builtins.open", side_effect=IOError("fail to open")), \
+                patch.object(processor.logger, "error") as mock_error:
+            with self.assertRaises(Exception) as context:
+                processor._read_xml_file("badfile.tcx")
+            mock_error.assert_called_with(
+                "Failed to read XML file: %s", "fail to open")
+            self.assertIn("fail to open", str(context.exception))
+
+    def test_write_xml_file_success(self):
+        processor = TCXProcessor()
+        mock_content = "<xml>test</xml>"
+        with patch("builtins.open", unittest.mock.mock_open()) as mock_open:
+            processor._write_xml_file("output.tcx", mock_content)
+            mock_open.assert_called_once_with(
+                "output.tcx", "w", encoding='utf-8')
+            handle = mock_open()
+            handle.write.assert_called_once_with(mock_content)
+
+    def test_write_xml_file_exception(self):
+        processor = TCXProcessor()
+        with patch("builtins.open", side_effect=IOError("write fail")), \
+                patch.object(processor.logger, "error") as mock_error:
+            with self.assertRaises(Exception) as context:
+                processor._write_xml_file("badfile.tcx", "<xml></xml>")
+            mock_error.assert_called_with(
+                "Failed to write XML file: %s", "write fail")
+            self.assertIn("write fail", str(context.exception))
+
+    def test_validate_tcx_file_empty_file(self):
+        processor = TCXProcessor()
+        with patch.object(processor, "_read_xml_file", return_value="   "), \
+                patch.object(processor.logger, "error") as mock_error:
+            valid, data = processor._validate_tcx_file("empty.tcx")
+            self.assertFalse(valid)
+            self.assertIsNone(data)
+            mock_error.assert_called_with("The TCX file is empty")
+
+    def test_validate_tcx_file_valid(self):
+        processor = TCXProcessor()
+        mock_data = unittest.mock.Mock()
+        mock_data.distance = 1234
+        with patch.object(processor, "_read_xml_file", return_value="<xml></xml>"), \
+                patch("src.main.TCXReader.read", return_value=mock_data) as mock_read, \
+                patch.object(processor.logger, "info") as mock_info:
+            valid, data = processor._validate_tcx_file("valid.tcx")
+            self.assertTrue(valid)
+            self.assertEqual(data, mock_data)
+            mock_read.assert_called_once_with("valid.tcx")
+            mock_info.assert_called_with(
+                "TCX file is valid. Distance covered: %d meters", 1234
+            )
+
+    def test_validate_tcx_file_invalid(self):
+        processor = TCXProcessor()
+        with patch.object(processor, "_read_xml_file", return_value="<xml></xml>"), \
+                patch("src.main.TCXReader.read", side_effect=Exception("bad tcx")), \
+                patch.object(processor.logger, "error") as mock_error:
+            valid, data = processor._validate_tcx_file("invalid.tcx")
+            self.assertFalse(valid)
+            self.assertIsNone(data)
+            mock_error.assert_called_with("Invalid TCX file: %s", "bad tcx")
+
+    def test_perform_ai_analysis(self):
+        processor = TCXProcessor()
+        mock_tcx_data = unittest.mock.Mock()
+        mock_sport = main_module.Sport.BIKE
+
+        with patch.object(processor, "_ensure_openai_key") as mock_ensure_key, \
+                patch("src.main.questionary.text") as mock_text, \
+                patch.object(processor, "_analyze_with_llm", return_value="analysis result") as mock_analyze, \
+                patch.object(processor.logger, "info") as mock_info:
+
+            # Mock questionary.text for training_plan and language
+            mock_text.side_effect = [
+                unittest.mock.Mock(ask=unittest.mock.Mock(
+                    return_value="Planned workout")),
+                unittest.mock.Mock(
+                    ask=unittest.mock.Mock(return_value="English"))
+            ]
+
+            processor._perform_ai_analysis(mock_tcx_data, mock_sport)
+
+            mock_ensure_key.assert_called_once()
+            self.assertEqual(mock_text.call_count, 2)
+            mock_analyze.assert_called_once()
+            # Check that logger.info was called with expected messages
+            info_calls = [call.args[0] for call in mock_info.call_args_list]
+            self.assertTrue(
+                any("Performing AI analysis" in msg for msg in info_calls))
+            self.assertTrue(
+                any("AI analysis completed successfully" in msg for msg in info_calls))
+            self.assertTrue(any("AI response" in msg for msg in info_calls))
+
+    def test_perform_ai_analysis_empty_plan_and_default_language(self):
+        processor = TCXProcessor()
+        mock_tcx_data = unittest.mock.Mock()
+        mock_sport = main_module.Sport.RUN
+
+        with patch.object(processor, "_ensure_openai_key") as mock_ensure_key, \
+                patch("src.main.questionary.text") as mock_text, \
+                patch.object(processor, "_analyze_with_llm", return_value="result") as mock_analyze, \
+                patch.object(processor.logger, "info") as mock_info:
+
+            # Simulate user pressing enter for both questions (empty plan, default language)
+            mock_text.side_effect = [
+                unittest.mock.Mock(ask=unittest.mock.Mock(return_value="")),
+                unittest.mock.Mock(ask=unittest.mock.Mock(
+                    return_value="Portuguese (Brazil)"))
+            ]
+
+            processor._perform_ai_analysis(mock_tcx_data, mock_sport)
+
+            mock_ensure_key.assert_called_once()
+            self.assertEqual(mock_text.call_count, 2)
+            mock_analyze.assert_called_once()
+            info_calls = [call.args[0] for call in mock_info.call_args_list]
+            self.assertTrue(
+                any("Performing AI analysis" in msg for msg in info_calls))
+            self.assertTrue(
+                any("AI analysis completed successfully" in msg for msg in info_calls))
+            self.assertTrue(any("AI response" in msg for msg in info_calls))
+
+    def test_ensure_openai_key_already_set(self):
+        processor = TCXProcessor()
+        with patch.dict("os.environ", {"OPENAI_API_KEY": "testkey"}), \
+                patch("src.main.questionary.password") as mock_password, \
+                patch("builtins.open") as mock_open, \
+                patch("src.main.load_dotenv") as mock_load_dotenv, \
+                patch.object(processor.logger, "info") as mock_info:
+            processor._ensure_openai_key()
+            mock_password.assert_not_called()
+            mock_open.assert_not_called()
+            mock_load_dotenv.assert_not_called()
+            mock_info.assert_not_called()
+
+    def test_ensure_openai_key_not_set(self):
+        processor = TCXProcessor()
+        with patch.dict("os.environ", {}, clear=True), \
+                patch("src.main.questionary.password") as mock_password, \
+                patch("builtins.open", unittest.mock.mock_open()) as mock_open, \
+                patch("src.main.load_dotenv") as mock_load_dotenv, \
+                patch.object(processor.logger, "info") as mock_info:
+            mock_password.return_value.ask.return_value = "myapikey"
+            processor._ensure_openai_key()
+            mock_password.assert_called_once_with("Enter your OpenAI API key:")
+            mock_open.assert_called_once_with(".env", "w", encoding="utf-8")
+            handle = mock_open()
+            handle.write.assert_called_once_with("OPENAI_API_KEY=myapikey")
+            mock_load_dotenv.assert_called_once()
+            mock_info.assert_called_once_with(
+                "OpenAI API key loaded successfully")
+
+    def test_analyze_with_llm(self):
+        processor = TCXProcessor()
+        mock_tcx_data = unittest.mock.Mock()
+        mock_sport = main_module.Sport.BIKE
+        mock_config = main_module.AnalysisConfig(
+            training_plan="Plan", language="English")
+
+        # Patch all dependencies inside _analyze_with_llm
+        with patch.object(processor, "_preprocess_trackpoints") as mock_preprocess, \
+                patch.object(processor, "_get_analysis_prompt_template") as mock_prompt_template, \
+                patch("src.main.PromptTemplate") as mock_prompt_template_cls, \
+                patch("src.main.ChatOpenAI") as mock_chat_openai, \
+                patch.dict("os.environ", {"OPENAI_API_KEY": "testkey"}):
+
+            # Setup mocks
+            mock_df = DataFrame({"a": [1], "b": [2]})
+            mock_preprocess.return_value = mock_df
+            mock_prompt_template.return_value = "TEMPLATE"
+            mock_prompt_instance = unittest.mock.Mock()
+            mock_prompt_instance.format.return_value = "PROMPT"
+            mock_prompt_template_cls.from_template.return_value = mock_prompt_instance
+
+            mock_llm_instance = unittest.mock.Mock()
+            mock_response = unittest.mock.Mock()
+            mock_response.content = "LLM RESULT"
+            mock_llm_instance.invoke.return_value = mock_response
+            mock_chat_openai.return_value = mock_llm_instance
+
+            result = processor._analyze_with_llm(
+                mock_tcx_data, mock_sport, mock_config)
+
+            mock_preprocess.assert_called_once_with(mock_tcx_data)
+            mock_prompt_template.assert_called_once_with("Plan")
+            mock_prompt_template_cls.from_template.assert_called_once_with(
+                "TEMPLATE")
+            mock_prompt_instance.format.assert_called_once_with(
+                sport=mock_sport.value,
+                training_data=mock_df.to_csv(index=False),
+                language="English",
+                plan="Plan"
+            )
+            mock_chat_openai.assert_called_once_with(
+                openai_api_key="testkey",
+                model_name="gpt-4o-mini",
+                max_tokens=2000,
+                temperature=0.6,
+                max_retries=5
+            )
+            mock_llm_instance.invoke.assert_called_once_with("PROMPT")
+            self.assertEqual(result, "LLM RESULT")
+
+    def test_preprocess_trackpoints_calls_processor_process(self):
+        processor = TCXProcessor()
+        mock_tcx_data = unittest.mock.Mock()
+        with patch("src.main.TrackpointProcessor") as mock_tp_cls:
+            mock_tp_instance = mock_tp_cls.return_value
+            mock_tp_instance.process.return_value = "processed_df"
+            result = processor._preprocess_trackpoints(mock_tcx_data)
+            mock_tp_cls.assert_called_once_with(processor.config)
+            mock_tp_instance.process.assert_called_once_with(mock_tcx_data)
+            self.assertEqual(result, "processed_df")
+
+    def test_format_xml_file_success(self):
+        processor = TCXProcessor()
+        xml_content = "<root><child>data</child></root>"
+        formatted_xml = '<?xml version="1.0" ?>\n<root>\n  <child>data</child>\n</root>\n'
+        with patch.object(processor, "_read_xml_file", return_value=xml_content), \
+                patch("src.main.parseString") as mock_parse, \
+                patch.object(processor, "_write_xml_file") as mock_write:
+            mock_dom = unittest.mock.Mock()
+            mock_dom.toprettyxml.return_value = formatted_xml
+            mock_parse.return_value = mock_dom
+            processor._format_xml_file("file.tcx")
+            mock_parse.assert_called_once_with(xml_content)
+            mock_dom.toprettyxml.assert_called_once_with(indent="  ")
+            mock_write.assert_called_once_with("file.tcx", formatted_xml)
+
+    def test_format_xml_file_exception(self):
+        processor = TCXProcessor()
+        with patch.object(processor, "_read_xml_file", side_effect=Exception("fail")), \
+                patch.object(processor.logger, "warning") as mock_warning:
+            processor._format_xml_file("badfile.tcx")
+            mock_warning.assert_called()
+            args = mock_warning.call_args[0]
+            self.assertIn(
+                "Failed to format XML file: %s. File saved without formatting.", args[0])
+            self.assertIn("fail", args[1])
+
+    def test_trackpoint_processor_process_full_pipeline(self):
+        # Create a mock TCXReader with trackpoints_to_dict returning a list of dicts
+        mock_tcx_data = unittest.mock.Mock()
+        # Simulate 100 trackpoints with required fields
+        trackpoints = []
+        for i in range(100):
+            trackpoints.append({
+                "distance": i * 10.0,
+                "time": unittest.mock.Mock(value=1_600_000_000 + i * 10),
+                "Speed": 3.0 + (i % 5),
+                "cadence": 80 + (i % 3),
+                "hr_value": 140 + (i % 10),
+                "latitude": -23.0 + i * 0.0001,
+                "longitude": -46.0 + i * 0.0001
+            })
+        mock_tcx_data.trackpoints_to_dict.return_value = trackpoints
+
+        processor = TrackpointProcessor(ProcessingConfig())
+        df = processor.process(mock_tcx_data)
+
+        # Check that the returned object is a DataFrame
+        self.assertIsInstance(df, DataFrame)
+        # Check that required columns exist
+        self.assertIn("Distance_Km", df.columns)
+        self.assertIn("Time", df.columns)
+        self.assertIn("Speed_Kmh", df.columns)
+        self.assertIn("Pace", df.columns)
+        # Check that time is formatted as HH:MM:SS
+        self.assertRegex(df["Time"].iloc[0], r"\d{2}:\d{2}:\d{2}")
+        # Check that there are no NaN in required columns
+        self.assertFalse(
+            df[["Distance_Km", "Speed_Kmh", "Pace"]].isnull().any().any())
+        # Check that the number of rows is less than or equal to the original (due to possible reduction)
+        self.assertLessEqual(len(df), 100)
+
+    def test_remove_sparse_columns_removes_cadence(self):
+        processor = TrackpointProcessor(ProcessingConfig())
+        # cadence has 4/6 nulls (>= 3), should be removed
+        df = DataFrame({
+            "cadence": [None, None, None, 1, 2, 3],
+            "Speed_Kmh": [10, 11, 12, 13, 14, 15],
+            "Distance_Km": [1, 2, 3, 4, 5, 6],
+            "Time": [1, 2, 3, 4, 5, 6]
         })
-        result = remove_null_columns(dataframe)
-        self.assertEqual(result.shape, (11, 2))
+        df2 = processor._remove_sparse_columns(df)
+        self.assertNotIn("cadence", df2.columns)
+        self.assertIn("Speed_Kmh", df2.columns)
 
-    def test_run_euclidean_distance(self):
-        dataframe = DataFrame({
-            'latitude': [1, 2, 3, 3.5, 4, 5, 6, 6.5, 7, 8, 9],
-            'longitude': [1, 2, 3, 3.5, 4, 5, 6, 6.5, 7, 8, 9]
+    def test_remove_sparse_columns_removes_hr_value(self):
+        processor = TrackpointProcessor(ProcessingConfig())
+        # hr_value has all nulls, should be removed
+        df = DataFrame({
+            "hr_value": [None, None, None, None],
+            "Speed_Kmh": [10, 11, 12, 13],
+            "Distance_Km": [1, 2, 3, 4],
+            "Time": [1, 2, 3, 4]
         })
-        result = run_euclidean_dist_deletion(dataframe, 0.1)
-        self.assertEqual(len(result), 10)
+        df2 = processor._remove_sparse_columns(df)
+        self.assertNotIn("hr_value", df2.columns)
+
+    def test_remove_sparse_columns_removes_lat_lon_together(self):
+        processor = TrackpointProcessor(ProcessingConfig())
+        # latitude and longitude both have >= threshold nulls, both should be dropped together
+        df = DataFrame({
+            "latitude": [None, None, 1, 2],
+            "longitude": [None, None, 3, 4],
+            "Speed_Kmh": [10, 11, 12, 13],
+            "Distance_Km": [1, 2, 3, 4],
+            "Time": [1, 2, 3, 4]
+        })
+        df2 = processor._remove_sparse_columns(df)
+        self.assertNotIn("latitude", df2.columns)
+        self.assertNotIn("longitude", df2.columns)
+
+    def test_remove_sparse_columns_does_not_remove_if_below_threshold(self):
+        processor = TrackpointProcessor(ProcessingConfig())
+        # Only 1 null in cadence, threshold is 2.5, so should not be removed
+        df = DataFrame({
+            "cadence": [None, 1, 2, 3, 4],
+            "Speed_Kmh": [10, 11, 12, 13, 14],
+            "Distance_Km": [1, 2, 3, 4, 5],
+            "Time": [1, 2, 3, 4, 5]
+        })
+        df2 = processor._remove_sparse_columns(df)
+        self.assertIn("cadence", df2.columns)
+
+    def test_remove_sparse_columns_handles_missing_columns(self):
+        processor = TrackpointProcessor(ProcessingConfig())
+        # DataFrame does not have any of the columns to check
+        df = DataFrame({
+            "Speed_Kmh": [10, 11, 12],
+            "Distance_Km": [1, 2, 3],
+            "Time": [1, 2, 3]
+        })
+        df2 = processor._remove_sparse_columns(df)
+        self.assertListEqual(list(df2.columns), [
+                             "Speed_Kmh", "Distance_Km", "Time"])
+
+    def test_reduce_data_size_large_dataset(self):
+        processor = TrackpointProcessor(ProcessingConfig())
+        # 5000 rows triggers large threshold
+        df = DataFrame({
+            "Speed_Kmh": np.random.rand(5000),
+            "Distance_Km": np.arange(5000),
+            "Time": np.arange(5000)
+        })
+        with patch.object(processor, "_apply_euclidean_filtering", return_value="filtered_df") as mock_apply:
+            result = processor._reduce_data_size(df)
+            mock_apply.assert_called_once_with(
+                df, processor.config.euclidean_threshold_large)
+            self.assertEqual(result, "filtered_df")
+
+    def test_reduce_data_size_medium_dataset(self):
+        processor = TrackpointProcessor(ProcessingConfig())
+        # 2000 rows triggers medium threshold
+        df = DataFrame({
+            "Speed_Kmh": np.random.rand(2000),
+            "Distance_Km": np.arange(2000),
+            "Time": np.arange(2000)
+        })
+        with patch.object(processor, "_apply_euclidean_filtering", return_value="filtered_df") as mock_apply:
+            result = processor._reduce_data_size(df)
+            mock_apply.assert_called_once_with(
+                df, processor.config.euclidean_threshold_medium)
+            self.assertEqual(result, "filtered_df")
+
+    def test_reduce_data_size_small_dataset(self):
+        processor = TrackpointProcessor(ProcessingConfig())
+        # 500 rows triggers small threshold
+        df = DataFrame({
+            "Speed_Kmh": np.random.rand(500),
+            "Distance_Km": np.arange(500),
+            "Time": np.arange(500)
+        })
+        with patch.object(processor, "_apply_euclidean_filtering", return_value="filtered_df") as mock_apply:
+            result = processor._reduce_data_size(df)
+            mock_apply.assert_called_once_with(
+                df, processor.config.euclidean_threshold_small)
+            self.assertEqual(result, "filtered_df")
+
+    def test_reduce_data_size_empty_dataframe(self):
+        processor = TrackpointProcessor(ProcessingConfig())
+        df = DataFrame(columns=["Speed_Kmh", "Distance_Km", "Time"])
+        with patch.object(processor, "_apply_euclidean_filtering", return_value="filtered_df") as mock_apply:
+            result = processor._reduce_data_size(df)
+            mock_apply.assert_called_once_with(
+                df, processor.config.euclidean_threshold_small)
+            self.assertEqual(result, "filtered_df")
+
+    def test_apply_euclidean_filtering_returns_original_if_too_few_rows(self):
+        processor = TrackpointProcessor(ProcessingConfig())
+        # DataFrame with less than 50 rows should be returned unchanged
+        df = DataFrame({
+            "Speed_Kmh": np.random.rand(10),
+            "Distance_Km": np.arange(10),
+            "Time": np.arange(10)
+        })
+        result = processor._apply_euclidean_filtering(df, 0.5)
+        self.assertTrue(result.equals(df))
+
+    def test_apply_euclidean_filtering_returns_original_if_no_numeric(self):
+        processor = TrackpointProcessor(ProcessingConfig())
+        # DataFrame with no numeric columns should be returned unchanged
+        df = DataFrame({
+            "A": ["a"] * 60,
+            "B": ["b"] * 60
+        })
+        result = processor._apply_euclidean_filtering(df, 0.5)
+        self.assertTrue(result.equals(df))
+
+    def test_apply_euclidean_filtering_reduces_rows(self):
+        processor = TrackpointProcessor(ProcessingConfig())
+        # DataFrame with 100 rows and two numeric columns
+        df = DataFrame({
+            "Speed_Kmh": np.linspace(10, 20, 100),
+            "Distance_Km": np.linspace(0, 10, 100),
+            "Time": np.arange(100)
+        })
+        # Use a high percentage to ensure reduction
+        result = processor._apply_euclidean_filtering(df, 0.2)
+        self.assertLess(len(result), len(df))
+        self.assertGreaterEqual(len(result), len(df) - int(0.2 * len(df)))
+
+    def test_apply_euclidean_filtering_handles_exception(self):
+        processor = TrackpointProcessor(ProcessingConfig())
+        df = DataFrame({
+            "Speed_Kmh": np.random.rand(60),
+            "Distance_Km": np.arange(60),
+            "Time": np.arange(60)
+        })
+        # Patch pdist to raise an exception
+        with patch("src.main.pdist", side_effect=Exception("fail")), \
+                patch.object(processor.logger, "warning") as mock_warning:
+            result = processor._apply_euclidean_filtering(df, 0.1)
+            self.assertTrue(result.equals(df))
+            mock_warning.assert_called()
+            self.assertIn("Failed to apply euclidean filtering",
+                          mock_warning.call_args[0][0])
+
+    def test_apply_euclidean_filtering_stops_before_removing_too_many(self):
+        processor = TrackpointProcessor(ProcessingConfig())
+        # 60 rows, percentage 0.9 would try to remove 54, but should stop at len(df)-10=50
+        df = DataFrame({
+            "Speed_Kmh": np.random.rand(60),
+            "Distance_Km": np.arange(60),
+            "Time": np.arange(60)
+        })
+        result = processor._apply_euclidean_filtering(df, 0.9)
+        # Should not remove more than len(df)-10 rows
+        self.assertGreaterEqual(len(result), 10)
 
 
 if __name__ == '__main__':

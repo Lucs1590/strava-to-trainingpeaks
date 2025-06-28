@@ -1,3 +1,14 @@
+## Unreleased
+
+### Feat
+
+- refine and enhance analysis prompt template for improved clarity, actionable insights, and comprehensive performance
+- refactor TCX processing and add AI analysis capabilities
+
+### Fix
+
+- improve error handling and logging in TCXProcessor and TrackpointProcessor
+
 ## 1.1.0 (2024-12-14)
 
 ### Feat
