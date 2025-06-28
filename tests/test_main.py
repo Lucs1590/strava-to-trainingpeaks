@@ -623,6 +623,32 @@ class TestMain(unittest.TestCase):
             mock_tp_instance.process.assert_called_once_with(mock_tcx_data)
             self.assertEqual(result, "processed_df")
 
+    def test_format_xml_file_success(self):
+        processor = TCXProcessor()
+        xml_content = "<root><child>data</child></root>"
+        formatted_xml = '<?xml version="1.0" ?>\n<root>\n  <child>data</child>\n</root>\n'
+        with patch.object(processor, "_read_xml_file", return_value=xml_content), \
+                patch("src.main.parseString") as mock_parse, \
+                patch.object(processor, "_write_xml_file") as mock_write:
+            mock_dom = unittest.mock.Mock()
+            mock_dom.toprettyxml.return_value = formatted_xml
+            mock_parse.return_value = mock_dom
+            processor._format_xml_file("file.tcx")
+            mock_parse.assert_called_once_with(xml_content)
+            mock_dom.toprettyxml.assert_called_once_with(indent="  ")
+            mock_write.assert_called_once_with("file.tcx", formatted_xml)
+
+    def test_format_xml_file_exception(self):
+        processor = TCXProcessor()
+        with patch.object(processor, "_read_xml_file", side_effect=Exception("fail")), \
+                patch.object(processor.logger, "warning") as mock_warning:
+            processor._format_xml_file("badfile.tcx")
+            mock_warning.assert_called()
+            args = mock_warning.call_args[0]
+            self.assertIn(
+                "Failed to format XML file: %s. File saved without formatting.", args[0])
+            self.assertIn("fail", args[1])
+
 
 if __name__ == '__main__':
     unittest.main()
