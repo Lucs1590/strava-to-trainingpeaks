@@ -798,6 +798,68 @@ class TestMain(unittest.TestCase):
                 df, processor.config.euclidean_threshold_small)
             self.assertEqual(result, "filtered_df")
 
+    def test_apply_euclidean_filtering_returns_original_if_too_few_rows(self):
+        processor = TrackpointProcessor(ProcessingConfig())
+        # DataFrame with less than 50 rows should be returned unchanged
+        df = DataFrame({
+            "Speed_Kmh": np.random.rand(10),
+            "Distance_Km": np.arange(10),
+            "Time": np.arange(10)
+        })
+        result = processor._apply_euclidean_filtering(df, 0.5)
+        self.assertTrue(result.equals(df))
+
+    def test_apply_euclidean_filtering_returns_original_if_no_numeric(self):
+        processor = TrackpointProcessor(ProcessingConfig())
+        # DataFrame with no numeric columns should be returned unchanged
+        df = DataFrame({
+            "A": ["a"] * 60,
+            "B": ["b"] * 60
+        })
+        result = processor._apply_euclidean_filtering(df, 0.5)
+        self.assertTrue(result.equals(df))
+
+    def test_apply_euclidean_filtering_reduces_rows(self):
+        processor = TrackpointProcessor(ProcessingConfig())
+        # DataFrame with 100 rows and two numeric columns
+        df = DataFrame({
+            "Speed_Kmh": np.linspace(10, 20, 100),
+            "Distance_Km": np.linspace(0, 10, 100),
+            "Time": np.arange(100)
+        })
+        # Use a high percentage to ensure reduction
+        result = processor._apply_euclidean_filtering(df, 0.2)
+        self.assertLess(len(result), len(df))
+        self.assertGreaterEqual(len(result), len(df) - int(0.2 * len(df)))
+
+    def test_apply_euclidean_filtering_handles_exception(self):
+        processor = TrackpointProcessor(ProcessingConfig())
+        df = DataFrame({
+            "Speed_Kmh": np.random.rand(60),
+            "Distance_Km": np.arange(60),
+            "Time": np.arange(60)
+        })
+        # Patch pdist to raise an exception
+        with patch("src.main.pdist", side_effect=Exception("fail")), \
+                patch.object(processor.logger, "warning") as mock_warning:
+            result = processor._apply_euclidean_filtering(df, 0.1)
+            self.assertTrue(result.equals(df))
+            mock_warning.assert_called()
+            self.assertIn("Failed to apply euclidean filtering",
+                          mock_warning.call_args[0][0])
+
+    def test_apply_euclidean_filtering_stops_before_removing_too_many(self):
+        processor = TrackpointProcessor(ProcessingConfig())
+        # 60 rows, percentage 0.9 would try to remove 54, but should stop at len(df)-10=50
+        df = DataFrame({
+            "Speed_Kmh": np.random.rand(60),
+            "Distance_Km": np.arange(60),
+            "Time": np.arange(60)
+        })
+        result = processor._apply_euclidean_filtering(df, 0.9)
+        # Should not remove more than len(df)-10 rows
+        self.assertGreaterEqual(len(result), 10)
+
 
 if __name__ == '__main__':
     unittest.main()
