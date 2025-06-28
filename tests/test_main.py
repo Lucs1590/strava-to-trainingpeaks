@@ -531,6 +531,36 @@ class TestMain(unittest.TestCase):
                 any("AI analysis completed successfully" in msg for msg in info_calls))
             self.assertTrue(any("AI response" in msg for msg in info_calls))
 
+    def test_ensure_openai_key_already_set(self):
+        processor = TCXProcessor()
+        with patch.dict("os.environ", {"OPENAI_API_KEY": "testkey"}), \
+                patch("src.main.questionary.password") as mock_password, \
+                patch("builtins.open") as mock_open, \
+                patch("src.main.load_dotenv") as mock_load_dotenv, \
+                patch.object(processor.logger, "info") as mock_info:
+            processor._ensure_openai_key()
+            mock_password.assert_not_called()
+            mock_open.assert_not_called()
+            mock_load_dotenv.assert_not_called()
+            mock_info.assert_not_called()
+
+    def test_ensure_openai_key_not_set(self):
+        processor = TCXProcessor()
+        with patch.dict("os.environ", {}, clear=True), \
+                patch("src.main.questionary.password") as mock_password, \
+                patch("builtins.open", unittest.mock.mock_open()) as mock_open, \
+                patch("src.main.load_dotenv") as mock_load_dotenv, \
+                patch.object(processor.logger, "info") as mock_info:
+            mock_password.return_value.ask.return_value = "myapikey"
+            processor._ensure_openai_key()
+            mock_password.assert_called_once_with("Enter your OpenAI API key:")
+            mock_open.assert_called_once_with(".env", "w", encoding="utf-8")
+            handle = mock_open()
+            handle.write.assert_called_once_with("OPENAI_API_KEY=myapikey")
+            mock_load_dotenv.assert_called_once()
+            mock_info.assert_called_once_with(
+                "OpenAI API key loaded successfully")
+
 
 if __name__ == '__main__':
     unittest.main()
