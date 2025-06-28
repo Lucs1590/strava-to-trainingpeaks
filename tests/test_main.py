@@ -417,6 +417,26 @@ class TestMain(unittest.TestCase):
                 "Failed to read XML file: %s", "fail to open")
             self.assertIn("fail to open", str(context.exception))
 
+    def test_write_xml_file_success(self):
+        processor = TCXProcessor()
+        mock_content = "<xml>test</xml>"
+        with patch("builtins.open", unittest.mock.mock_open()) as mock_open:
+            processor._write_xml_file("output.tcx", mock_content)
+            mock_open.assert_called_once_with(
+                "output.tcx", "w", encoding='utf-8')
+            handle = mock_open()
+            handle.write.assert_called_once_with(mock_content)
+
+    def test_write_xml_file_exception(self):
+        processor = TCXProcessor()
+        with patch("builtins.open", side_effect=IOError("write fail")), \
+                patch.object(processor.logger, "error") as mock_error:
+            with self.assertRaises(Exception) as context:
+                processor._write_xml_file("badfile.tcx", "<xml></xml>")
+            mock_error.assert_called_with(
+                "Failed to write XML file: %s", "write fail")
+            self.assertIn("write fail", str(context.exception))
+
 
 if __name__ == '__main__':
     unittest.main()
