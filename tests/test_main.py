@@ -649,6 +649,41 @@ class TestMain(unittest.TestCase):
                 "Failed to format XML file: %s. File saved without formatting.", args[0])
             self.assertIn("fail", args[1])
 
+    def test_trackpoint_processor_process_full_pipeline(self):
+        # Create a mock TCXReader with trackpoints_to_dict returning a list of dicts
+        mock_tcx_data = unittest.mock.Mock()
+        # Simulate 100 trackpoints with required fields
+        trackpoints = []
+        for i in range(100):
+            trackpoints.append({
+                "distance": i * 10.0,
+                "time": unittest.mock.Mock(value=1_600_000_000 + i * 10),
+                "Speed": 3.0 + (i % 5),
+                "cadence": 80 + (i % 3),
+                "hr_value": 140 + (i % 10),
+                "latitude": -23.0 + i * 0.0001,
+                "longitude": -46.0 + i * 0.0001
+            })
+        mock_tcx_data.trackpoints_to_dict.return_value = trackpoints
+
+        processor = TrackpointProcessor(ProcessingConfig())
+        df = processor.process(mock_tcx_data)
+
+        # Check that the returned object is a DataFrame
+        self.assertIsInstance(df, DataFrame)
+        # Check that required columns exist
+        self.assertIn("Distance_Km", df.columns)
+        self.assertIn("Time", df.columns)
+        self.assertIn("Speed_Kmh", df.columns)
+        self.assertIn("Pace", df.columns)
+        # Check that time is formatted as HH:MM:SS
+        self.assertRegex(df["Time"].iloc[0], r"\d{2}:\d{2}:\d{2}")
+        # Check that there are no NaN in required columns
+        self.assertFalse(
+            df[["Distance_Km", "Speed_Kmh", "Pace"]].isnull().any().any())
+        # Check that the number of rows is less than or equal to the original (due to possible reduction)
+        self.assertLessEqual(len(df), 100)
+
 
 if __name__ == '__main__':
     unittest.main()
