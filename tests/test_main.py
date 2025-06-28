@@ -274,6 +274,47 @@ class TestMain(unittest.TestCase):
             mock_error.assert_called_with(
                 "Failed to download the TCX file from Strava")
 
+    def test_tcx_processor_get_latest_download_with_files(self):
+        processor = TCXProcessor()
+        mock_file1 = unittest.mock.Mock()
+        mock_file2 = unittest.mock.Mock()
+        mock_file1.stat.return_value.st_mtime = 100
+        mock_file2.stat.return_value.st_mtime = 200
+        with patch("src.main.Path.home") as mock_home:
+            mock_downloads = unittest.mock.Mock()
+            mock_home.return_value.__truediv__.return_value = mock_downloads
+            mock_downloads.glob.return_value = [mock_file1, mock_file2]
+            result = processor._get_latest_download()
+            self.assertEqual(result, str(mock_file2))
+
+    def test_tcx_processor_get_latest_download_no_files(self):
+        processor = TCXProcessor()
+        with patch("src.main.Path.home") as mock_home, \
+                patch.object(processor, "_get_file_path_from_user", return_value="manual.tcx") as mock_get_path, \
+                patch.object(processor.logger, "warning") as mock_warning:
+            mock_downloads = unittest.mock.Mock()
+            mock_home.return_value.__truediv__.return_value = mock_downloads
+            mock_downloads.glob.return_value = []
+            result = processor._get_latest_download()
+            mock_warning.assert_called_with(
+                "No TCX file found in Downloads folder")
+            mock_get_path.assert_called_once()
+            self.assertEqual(result, "manual.tcx")
+
+    def test_tcx_processor_get_latest_download_exception(self):
+        processor = TCXProcessor()
+        with patch("src.main.Path.home") as mock_home, \
+                patch.object(processor, "_get_file_path_from_user", return_value="manual2.tcx") as mock_get_path, \
+                patch.object(processor.logger, "warning") as mock_warning:
+            mock_downloads = unittest.mock.Mock()
+            mock_home.return_value.__truediv__.return_value = mock_downloads
+            mock_downloads.glob.side_effect = Exception("fail")
+            result = processor._get_latest_download()
+            mock_warning.assert_called_with(
+                "No TCX file found in Downloads folder")
+            mock_get_path.assert_called_once()
+            self.assertEqual(result, "manual2.tcx")
+
 
 if __name__ == '__main__':
     unittest.main()
