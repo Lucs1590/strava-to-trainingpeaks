@@ -471,6 +471,66 @@ class TestMain(unittest.TestCase):
             self.assertIsNone(data)
             mock_error.assert_called_with("Invalid TCX file: %s", "bad tcx")
 
+    def test_perform_ai_analysis(self):
+        processor = TCXProcessor()
+        mock_tcx_data = unittest.mock.Mock()
+        mock_sport = main_module.Sport.BIKE
+
+        with patch.object(processor, "_ensure_openai_key") as mock_ensure_key, \
+                patch("src.main.questionary.text") as mock_text, \
+                patch.object(processor, "_analyze_with_llm", return_value="analysis result") as mock_analyze, \
+                patch.object(processor.logger, "info") as mock_info:
+
+            # Mock questionary.text for training_plan and language
+            mock_text.side_effect = [
+                unittest.mock.Mock(ask=unittest.mock.Mock(
+                    return_value="Planned workout")),
+                unittest.mock.Mock(
+                    ask=unittest.mock.Mock(return_value="English"))
+            ]
+
+            processor._perform_ai_analysis(mock_tcx_data, mock_sport)
+
+            mock_ensure_key.assert_called_once()
+            self.assertEqual(mock_text.call_count, 2)
+            mock_analyze.assert_called_once()
+            # Check that logger.info was called with expected messages
+            info_calls = [call.args[0] for call in mock_info.call_args_list]
+            self.assertTrue(
+                any("Performing AI analysis" in msg for msg in info_calls))
+            self.assertTrue(
+                any("AI analysis completed successfully" in msg for msg in info_calls))
+            self.assertTrue(any("AI response" in msg for msg in info_calls))
+
+    def test_perform_ai_analysis_empty_plan_and_default_language(self):
+        processor = TCXProcessor()
+        mock_tcx_data = unittest.mock.Mock()
+        mock_sport = main_module.Sport.RUN
+
+        with patch.object(processor, "_ensure_openai_key") as mock_ensure_key, \
+                patch("src.main.questionary.text") as mock_text, \
+                patch.object(processor, "_analyze_with_llm", return_value="result") as mock_analyze, \
+                patch.object(processor.logger, "info") as mock_info:
+
+            # Simulate user pressing enter for both questions (empty plan, default language)
+            mock_text.side_effect = [
+                unittest.mock.Mock(ask=unittest.mock.Mock(return_value="")),
+                unittest.mock.Mock(ask=unittest.mock.Mock(
+                    return_value="Portuguese (Brazil)"))
+            ]
+
+            processor._perform_ai_analysis(mock_tcx_data, mock_sport)
+
+            mock_ensure_key.assert_called_once()
+            self.assertEqual(mock_text.call_count, 2)
+            mock_analyze.assert_called_once()
+            info_calls = [call.args[0] for call in mock_info.call_args_list]
+            self.assertTrue(
+                any("Performing AI analysis" in msg for msg in info_calls))
+            self.assertTrue(
+                any("AI analysis completed successfully" in msg for msg in info_calls))
+            self.assertTrue(any("AI response" in msg for msg in info_calls))
+
 
 if __name__ == '__main__':
     unittest.main()
