@@ -59,9 +59,6 @@ class TCXProcessor:
     def run(self) -> None:
         """Main execution flow."""
         try:
-            # Instantiate and run the SyncAgent
-            sync_agent = SyncAgent()
-            sync_agent.schedule_weekly_sync()
             self.sport = self._get_sport_selection()
             self.logger.info("Selected sport: %s", self.sport.value)
 
@@ -74,6 +71,10 @@ class TCXProcessor:
             self._format_xml_file(file_path)
 
             self.logger.info("Process completed successfully!")
+
+            # Instantiate and run the SyncAgent
+            sync_agent = SyncAgent()
+            sync_agent.schedule_weekly_sync()
 
         except Exception as err:
             self.logger.error("Process failed: %s", str(err))
