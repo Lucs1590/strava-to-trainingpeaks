@@ -233,11 +233,46 @@ class TestMain(unittest.TestCase):
             with self.assertRaises(ValueError) as context:
                 processor._get_activity_id()
             self.assertIn("Invalid activity ID provided",
-                            str(context.exception))
+                          str(context.exception))
 
             mock_text.return_value.ask.return_value = ""
             with self.assertRaises(ValueError):
                 processor._get_activity_id()
+
+    def test_tcx_processor_download_tcx_file_bike(self):
+        processor = TCXProcessor()
+        processor.sport = main_module.Sport.BIKE
+        with patch("src.main.webbrowser.open") as mock_open:
+            processor._download_tcx_file("123456")
+            mock_open.assert_called_once_with(
+                "https://www.strava.com/activities/123456/export_tcx")
+
+    def test_tcx_processor_download_tcx_file_swim(self):
+        processor = TCXProcessor()
+        processor.sport = main_module.Sport.SWIM
+        with patch("src.main.webbrowser.open") as mock_open:
+            processor._download_tcx_file("654321")
+            mock_open.assert_called_once_with(
+                "https://www.strava.com/activities/654321/export_original")
+
+    def test_tcx_processor_download_tcx_file_other(self):
+        processor = TCXProcessor()
+        processor.sport = main_module.Sport.OTHER
+        with patch("src.main.webbrowser.open") as mock_open:
+            processor._download_tcx_file("111222")
+            mock_open.assert_called_once_with(
+                "https://www.strava.com/activities/111222/export_original")
+
+    def test_tcx_processor_download_tcx_file_exception(self):
+        processor = TCXProcessor()
+        processor.sport = main_module.Sport.BIKE
+        with patch("src.main.webbrowser.open", side_effect=Exception("browser fail")), \
+                patch.object(processor.logger, "error") as mock_error:
+            with self.assertRaises(ValueError) as context:
+                processor._download_tcx_file("123456")
+            self.assertIn("Error opening the browser", str(context.exception))
+            mock_error.assert_called_with(
+                "Failed to download the TCX file from Strava")
 
 
 if __name__ == '__main__':
