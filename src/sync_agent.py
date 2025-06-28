@@ -1,10 +1,14 @@
-import requests
-import schedule
-import logging
-import time
-from datetime import datetime, timedelta
-from dotenv import load_dotenv
 import os
+import time
+import logging
+
+from datetime import datetime, timedelta
+
+import schedule
+import requests
+
+from dotenv import load_dotenv
+
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service as ChromeService
@@ -13,6 +17,7 @@ from langchain.agents import create_openai_functions_agent
 from langchain_openai import ChatOpenAI
 
 load_dotenv()
+
 
 class SyncAgent:
     def __init__(self):
@@ -23,12 +28,17 @@ class SyncAgent:
         self.logger = logging.getLogger("SyncAgent")
         self.logger.setLevel(logging.INFO)
         handler = logging.FileHandler('sync_agent.log')
-        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        formatter = logging.Formatter(
+            '%(asctime)s - %(levelname)s - %(message)s'
+        )
         handler.setFormatter(formatter)
         self.logger.addHandler(handler)
         self.langchain_agent = create_openai_functions_agent(
             llm=ChatOpenAI(openai_api_key=os.getenv("OPENAI_API_KEY")),
-            functions=[self.get_workouts_from_strava, self.push_workouts_to_trainingpeaks]
+            functions=[
+                self.get_workouts_from_strava,
+                self.push_workouts_to_trainingpeaks
+            ]
         )
 
     def get_workouts_from_strava(self, athlete_id, start_date, end_date):
@@ -43,18 +53,27 @@ class SyncAgent:
         if response.status_code == 200:
             return response.json()
         else:
-            self.logger.error(f"Failed to retrieve workouts from Strava: {response.status_code}")
+            self.logger.error(
+                f"Failed to retrieve workouts from Strava: {response.status_code}"
+            )
             return []
 
     def push_workouts_to_trainingpeaks(self, workouts):
         options = webdriver.ChromeOptions()
         options.add_argument("--headless")
-        driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
+        driver = webdriver.Chrome(
+            service=ChromeService(ChromeDriverManager().install()),
+            options=options
+        )
         driver.get("https://home.trainingpeaks.com/login")
 
         # Login to TrainingPeaks
-        driver.find_element(By.ID, "username").send_keys(self.trainingpeaks_username)
-        driver.find_element(By.ID, "password").send_keys(self.trainingpeaks_password)
+        driver.find_element(By.ID, "username").send_keys(
+            self.trainingpeaks_username
+        )
+        driver.find_element(By.ID, "password").send_keys(
+            self.trainingpeaks_password
+        )
         driver.find_element(By.ID, "login-button").click()
         time.sleep(5)  # Wait for login to complete
 
@@ -68,14 +87,20 @@ class SyncAgent:
             upload_element.send_keys(tcx_file_path)
             time.sleep(2)  # Wait for the upload to complete
 
-            self.logger.info(f"Successfully pushed workout to TrainingPeaks: {workout['id']}")
+            self.logger.info(
+                f"Successfully pushed workout to TrainingPeaks: {workout['id']}"
+            )
 
         driver.quit()
 
     def sync_workouts_for_week(self, athlete_id):
         end_date = datetime.now()
         start_date = end_date - timedelta(days=7)
-        workouts = self.get_workouts_from_strava(athlete_id, start_date, end_date)
+        workouts = self.get_workouts_from_strava(
+            athlete_id,
+            start_date,
+            end_date
+        )
         if workouts:
             self.push_workouts_to_trainingpeaks(workouts)
         else:
