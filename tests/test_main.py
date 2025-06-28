@@ -747,6 +747,57 @@ class TestMain(unittest.TestCase):
         self.assertListEqual(list(df2.columns), [
                              "Speed_Kmh", "Distance_Km", "Time"])
 
+    def test_reduce_data_size_large_dataset(self):
+        processor = TrackpointProcessor(ProcessingConfig())
+        # 5000 rows triggers large threshold
+        df = DataFrame({
+            "Speed_Kmh": np.random.rand(5000),
+            "Distance_Km": np.arange(5000),
+            "Time": np.arange(5000)
+        })
+        with patch.object(processor, "_apply_euclidean_filtering", return_value="filtered_df") as mock_apply:
+            result = processor._reduce_data_size(df)
+            mock_apply.assert_called_once_with(
+                df, processor.config.euclidean_threshold_large)
+            self.assertEqual(result, "filtered_df")
+
+    def test_reduce_data_size_medium_dataset(self):
+        processor = TrackpointProcessor(ProcessingConfig())
+        # 2000 rows triggers medium threshold
+        df = DataFrame({
+            "Speed_Kmh": np.random.rand(2000),
+            "Distance_Km": np.arange(2000),
+            "Time": np.arange(2000)
+        })
+        with patch.object(processor, "_apply_euclidean_filtering", return_value="filtered_df") as mock_apply:
+            result = processor._reduce_data_size(df)
+            mock_apply.assert_called_once_with(
+                df, processor.config.euclidean_threshold_medium)
+            self.assertEqual(result, "filtered_df")
+
+    def test_reduce_data_size_small_dataset(self):
+        processor = TrackpointProcessor(ProcessingConfig())
+        # 500 rows triggers small threshold
+        df = DataFrame({
+            "Speed_Kmh": np.random.rand(500),
+            "Distance_Km": np.arange(500),
+            "Time": np.arange(500)
+        })
+        with patch.object(processor, "_apply_euclidean_filtering", return_value="filtered_df") as mock_apply:
+            result = processor._reduce_data_size(df)
+            mock_apply.assert_called_once_with(
+                df, processor.config.euclidean_threshold_small)
+            self.assertEqual(result, "filtered_df")
+
+    def test_reduce_data_size_empty_dataframe(self):
+        processor = TrackpointProcessor(ProcessingConfig())
+        df = DataFrame(columns=["Speed_Kmh", "Distance_Km", "Time"])
+        with patch.object(processor, "_apply_euclidean_filtering", return_value="filtered_df") as mock_apply:
+            result = processor._reduce_data_size(df)
+            mock_apply.assert_called_once_with(
+                df, processor.config.euclidean_threshold_small)
+            self.assertEqual(result, "filtered_df")
+
 
 if __name__ == '__main__':
     unittest.main()
