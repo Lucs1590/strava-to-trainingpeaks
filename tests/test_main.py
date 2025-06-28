@@ -561,6 +561,57 @@ class TestMain(unittest.TestCase):
             mock_info.assert_called_once_with(
                 "OpenAI API key loaded successfully")
 
+    def test_analyze_with_llm(self):
+        processor = TCXProcessor()
+        mock_tcx_data = unittest.mock.Mock()
+        mock_sport = main_module.Sport.BIKE
+        mock_config = main_module.AnalysisConfig(
+            training_plan="Plan", language="English")
+
+        # Patch all dependencies inside _analyze_with_llm
+        with patch.object(processor, "_preprocess_trackpoints") as mock_preprocess, \
+                patch.object(processor, "_get_analysis_prompt_template") as mock_prompt_template, \
+                patch("src.main.PromptTemplate") as mock_prompt_template_cls, \
+                patch("src.main.ChatOpenAI") as mock_chat_openai, \
+                patch.dict("os.environ", {"OPENAI_API_KEY": "testkey"}):
+
+            # Setup mocks
+            mock_df = DataFrame({"a": [1], "b": [2]})
+            mock_preprocess.return_value = mock_df
+            mock_prompt_template.return_value = "TEMPLATE"
+            mock_prompt_instance = unittest.mock.Mock()
+            mock_prompt_instance.format.return_value = "PROMPT"
+            mock_prompt_template_cls.from_template.return_value = mock_prompt_instance
+
+            mock_llm_instance = unittest.mock.Mock()
+            mock_response = unittest.mock.Mock()
+            mock_response.content = "LLM RESULT"
+            mock_llm_instance.invoke.return_value = mock_response
+            mock_chat_openai.return_value = mock_llm_instance
+
+            result = processor._analyze_with_llm(
+                mock_tcx_data, mock_sport, mock_config)
+
+            mock_preprocess.assert_called_once_with(mock_tcx_data)
+            mock_prompt_template.assert_called_once_with("Plan")
+            mock_prompt_template_cls.from_template.assert_called_once_with(
+                "TEMPLATE")
+            mock_prompt_instance.format.assert_called_once_with(
+                sport=mock_sport.value,
+                training_data=mock_df.to_csv(index=False),
+                language="English",
+                plan="Plan"
+            )
+            mock_chat_openai.assert_called_once_with(
+                openai_api_key="testkey",
+                model_name="gpt-4o-mini",
+                max_tokens=2000,
+                temperature=0.6,
+                max_retries=5
+            )
+            mock_llm_instance.invoke.assert_called_once_with("PROMPT")
+            self.assertEqual(result, "LLM RESULT")
+
 
 if __name__ == '__main__':
     unittest.main()
