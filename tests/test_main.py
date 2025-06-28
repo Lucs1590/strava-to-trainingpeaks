@@ -612,6 +612,17 @@ class TestMain(unittest.TestCase):
             mock_llm_instance.invoke.assert_called_once_with("PROMPT")
             self.assertEqual(result, "LLM RESULT")
 
+    def test_preprocess_trackpoints_calls_processor_process(self):
+        processor = TCXProcessor()
+        mock_tcx_data = unittest.mock.Mock()
+        with patch("src.main.TrackpointProcessor") as mock_tp_cls:
+            mock_tp_instance = mock_tp_cls.return_value
+            mock_tp_instance.process.return_value = "processed_df"
+            result = processor._preprocess_trackpoints(mock_tcx_data)
+            mock_tp_cls.assert_called_once_with(processor.config)
+            mock_tp_instance.process.assert_called_once_with(mock_tcx_data)
+            self.assertEqual(result, "processed_df")
+
 
 if __name__ == '__main__':
     unittest.main()
