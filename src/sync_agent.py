@@ -25,7 +25,7 @@ class SyncAgent:
         self.strava_api_key = os.getenv("STRAVA_API_KEY")
         self.trainingpeaks_username = os.getenv("TRAININGPEAKS_USERNAME")
         self.trainingpeaks_password = os.getenv("TRAININGPEAKS_PASSWORD")
-        self.base_strava_url = "https://www.strava.com/api/v3"
+        self.strava_base_url = "https://www.strava.com/api/v3"
         self.logger = logging.getLogger("SyncAgent")
         self.logger.setLevel(logging.INFO)
         handler = logging.FileHandler('sync_agent.log')
