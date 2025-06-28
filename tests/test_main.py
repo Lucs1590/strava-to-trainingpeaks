@@ -337,6 +337,67 @@ class TestMain(unittest.TestCase):
             result = processor._get_file_path_from_user()
             self.assertIsNone(result)
 
+    def test_process_by_sport_swim(self):
+        processor = TCXProcessor()
+        processor.sport = main_module.Sport.SWIM
+        with patch.object(processor.logger, "info") as mock_info, \
+                patch.object(processor, "_format_swim_tcx") as mock_format:
+            processor._process_by_sport("swim.tcx")
+            mock_info.assert_any_call(
+                "Formatting the TCX file for TrainingPeaks import")
+            mock_format.assert_called_once_with("swim.tcx")
+
+    def test_process_by_sport_other(self):
+        processor = TCXProcessor()
+        processor.sport = main_module.Sport.OTHER
+        with patch.object(processor.logger, "info") as mock_info, \
+                patch.object(processor, "_format_swim_tcx") as mock_format:
+            processor._process_by_sport("other.tcx")
+            mock_info.assert_any_call(
+                "Formatting the TCX file for TrainingPeaks import")
+            mock_format.assert_called_once_with("other.tcx")
+
+    def test_process_by_sport_bike_valid_no_ai(self):
+        processor = TCXProcessor()
+        processor.sport = main_module.Sport.BIKE
+        with patch.object(processor.logger, "info") as mock_info, \
+                patch.object(processor, "_validate_tcx_file", return_value=(True, "tcx_data")) as mock_validate, \
+                patch.object(processor, "_should_perform_ai_analysis", return_value=False) as mock_ai:
+            processor._process_by_sport("bike.tcx")
+            mock_info.assert_any_call("Validating the TCX file")
+            mock_validate.assert_called_once_with("bike.tcx")
+            mock_ai.assert_called_once()
+
+    def test_process_by_sport_run_valid_with_ai(self):
+        processor = TCXProcessor()
+        processor.sport = main_module.Sport.RUN
+        with patch.object(processor.logger, "info") as mock_info, \
+                patch.object(processor, "_validate_tcx_file", return_value=(True, "tcx_data")) as mock_validate, \
+                patch.object(processor, "_should_perform_ai_analysis", return_value=True) as mock_ai, \
+                patch.object(processor, "_perform_ai_analysis") as mock_perform_ai:
+            processor._process_by_sport("run.tcx")
+            mock_info.assert_any_call("Validating the TCX file")
+            mock_validate.assert_called_once_with("run.tcx")
+            mock_ai.assert_called_once()
+            mock_perform_ai.assert_called_once_with(
+                "tcx_data", main_module.Sport.RUN)
+
+    def test_process_by_sport_invalid_tcx(self):
+        processor = TCXProcessor()
+        processor.sport = main_module.Sport.BIKE
+        with patch.object(processor.logger, "info"), \
+                patch.object(processor, "_validate_tcx_file", return_value=(False, None)):
+            with self.assertRaises(ValueError) as context:
+                processor._process_by_sport("invalid.tcx")
+            self.assertIn("Invalid TCX file", str(context.exception))
+
+    def test_process_by_sport_unsupported(self):
+        processor = TCXProcessor()
+        processor.sport = None  # Not a valid Sport
+        with self.assertRaises(ValueError) as context:
+            processor._process_by_sport("file.tcx")
+        self.assertIn("Unsupported sport", str(context.exception))
+
 
 if __name__ == '__main__':
     unittest.main()
