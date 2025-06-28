@@ -211,6 +211,34 @@ class TestMain(unittest.TestCase):
                 any("Automatically detected downloaded file path" in msg for msg in info_calls)
             )
 
+    def test_tcx_processor_get_activity_id_valid(self):
+        processor = TCXProcessor()
+        with patch('src.main.questionary.text') as mock_text:
+            mock_text.return_value.ask.return_value = "123456"
+            result = processor._get_activity_id()
+            self.assertEqual(result, "123456")
+
+            mock_text.return_value.ask.return_value = "abc123def"
+            result = processor._get_activity_id()
+            self.assertEqual(result, "123")
+
+            mock_text.return_value.ask.return_value = "12-34-56"
+            result = processor._get_activity_id()
+            self.assertEqual(result, "123456")
+
+    def test_tcx_processor_get_activity_id_invalid(self):
+        processor = TCXProcessor()
+        with patch('src.main.questionary.text') as mock_text:
+            mock_text.return_value.ask.return_value = "abc"
+            with self.assertRaises(ValueError) as context:
+                processor._get_activity_id()
+            self.assertIn("Invalid activity ID provided",
+                            str(context.exception))
+
+            mock_text.return_value.ask.return_value = ""
+            with self.assertRaises(ValueError):
+                processor._get_activity_id()
+
 
 if __name__ == '__main__':
     unittest.main()
