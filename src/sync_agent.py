@@ -15,6 +15,7 @@ from selenium.webdriver.chrome.service import Service as ChromeService
 from webdriver_manager.chrome import ChromeDriverManager
 from langchain.agents import create_openai_functions_agent
 from langchain_openai import ChatOpenAI
+from langchain.prompts import PromptTemplate
 
 load_dotenv()
 
@@ -33,30 +34,53 @@ class SyncAgent:
         )
         handler.setFormatter(formatter)
         self.logger.addHandler(handler)
-        self.langchain_agent = create_openai_functions_agent(
-            llm=ChatOpenAI(openai_api_key=os.getenv("OPENAI_API_KEY")),
-            tools=[
-                self.get_workouts_from_strava,
-                self.push_workouts_to_trainingpeaks
-            ],
-            prompt="You are a Strava to TrainingPeaks sync agent. Your task is to retrieve workouts from Strava and push them to TrainingPeaks."
-        )
+        # Initialize LangChain agent for intelligent workout syncing
+        self.openai_api_key = os.getenv("OPENAI_API_KEY")
+        if not self.openai_api_key:
+            self.logger.warning(
+                "OpenAI API key not found. LangChain agent will not be available.")
+            self.langchain_agent = None
+        else:
+            try:
+                prompt = PromptTemplate(
+                    input_variables=["start_date", "end_date", "user_input"],
+                    template=(
+                        "You are a helpful assistant that can interact with Strava and TrainingPeaks. "
+                        "You can retrieve workouts from Strava and push them to TrainingPeaks. "
+                        "Use the following tools:\n"
+                        "- get_workouts_from_strava(start_date, end_date): Retrieve workouts from Strava between the specified dates.\n"
+                        "- push_workouts_to_trainingpeaks(workouts): Push the provided workouts to TrainingPeaks.\n"
+                        "Make sure to handle any errors gracefully and log the results.\n\n"
+                        "User request: {user_input}\n"
+                        "Date range: {start_date} to {end_date}"
+                    )
+                )
 
-    def get_workouts_from_strava(self, start_date, end_date):
-        url = f"{self.base_strava_url}/athlete/activities"
-        headers = {"Authorization": f"Bearer {self.strava_api_key}"}
+                self.langchain_agent = create_openai_functions_agent(
+                    llm=ChatOpenAI(api_key=self.openai_api_key, temperature=0),
+                    tools=[],  # Tools should be defined separately as LangChain Tool objects
+                    prompt=prompt
+                )
+                self.logger.info("LangChain agent initialized successfully")
+            except Exception as e:
+                self.logger.error(f"Failed to initialize LangChain agent: {e}")
+                self.langchain_agent = None
+
+    def get_workouts_from_strava(self, athlete_id, start_date, end_date):
+        """
+        Retrieve workouts from Strava for a given athlete and date range.
+        """
+        url = f"{self.strava_base_url}/athlete/{athlete_id}/activities"
         params = {
-            "before": int(end_date.timestamp()),
             "after": int(start_date.timestamp()),
-            "per_page": 200
+            "before": int(end_date.timestamp()),
         }
-        response = requests.get(url, headers=headers, params=params)
+        response = requests.get(url, params=params)
+
         if response.status_code == 200:
             return response.json()
-        self.logger.error(
-            f"Failed to retrieve workouts from Strava: {response.status_code}"
-        )
-        return []
+        else:
+            return []
 
     def push_workouts_to_trainingpeaks(self, workouts):
         options = webdriver.ChromeOptions()
@@ -93,17 +117,17 @@ class SyncAgent:
 
         driver.quit()
 
-    def sync_workouts_for_week(self):
+    def sync_workouts_for_week(self, athlete_id):
+        """
+        Sync workouts for the current week.
+        """
+        start_date = datetime.now() - timedelta(days=7)
         end_date = datetime.now()
-        start_date = end_date - timedelta(days=7)
+
         workouts = self.get_workouts_from_strava(
-            start_date,
-            end_date
-        )
+            athlete_id, start_date, end_date)
         if workouts:
             self.push_workouts_to_trainingpeaks(workouts)
-        else:
-            self.logger.info("No workouts to sync for the past week.")
 
     def handle_api_rate_limits(self, func, *args, **kwargs):
         max_retries = 5
@@ -119,8 +143,12 @@ class SyncAgent:
                     return None
         return None
 
-    def schedule_weekly_sync(self):
-        schedule.every().week.do(self.sync_workouts_for_week)
+    def schedule_weekly_sync(self, athlete_id):
+        """
+        Schedule weekly synchronization of workouts.
+        """
+        schedule.every().week.do(self.sync_workouts_for_week, athlete_id)
+
         while True:
             schedule.run_pending()
-            time.sleep(1)
+            time.sleep(60)
