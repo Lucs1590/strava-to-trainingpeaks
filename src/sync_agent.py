@@ -41,7 +41,7 @@ class SyncAgent:
             ]
         )
 
-    def get_workouts_from_strava(self, athlete_id, start_date, end_date):
+    def get_workouts_from_strava(self, start_date, end_date):
         url = f"{self.base_strava_url}/athlete/activities"
         headers = {"Authorization": f"Bearer {self.strava_api_key}"}
         params = {
@@ -52,11 +52,10 @@ class SyncAgent:
         response = requests.get(url, headers=headers, params=params)
         if response.status_code == 200:
             return response.json()
-        else:
-            self.logger.error(
-                f"Failed to retrieve workouts from Strava: {response.status_code}"
-            )
-            return []
+        self.logger.error(
+            f"Failed to retrieve workouts from Strava: {response.status_code}"
+        )
+        return []
 
     def push_workouts_to_trainingpeaks(self, workouts):
         options = webdriver.ChromeOptions()
@@ -93,11 +92,10 @@ class SyncAgent:
 
         driver.quit()
 
-    def sync_workouts_for_week(self, athlete_id):
+    def sync_workouts_for_week(self):
         end_date = datetime.now()
         start_date = end_date - timedelta(days=7)
         workouts = self.get_workouts_from_strava(
-            athlete_id,
             start_date,
             end_date
         )
@@ -118,9 +116,10 @@ class SyncAgent:
                 else:
                     self.logger.error("Max retries reached. Giving up.")
                     return None
+        return None
 
-    def schedule_weekly_sync(self, athlete_id):
-        schedule.every().week.do(self.sync_workouts_for_week, athlete_id=athlete_id)
+    def schedule_weekly_sync(self):
+        schedule.every().week.do(self.sync_workouts_for_week)
         while True:
             schedule.run_pending()
             time.sleep(1)

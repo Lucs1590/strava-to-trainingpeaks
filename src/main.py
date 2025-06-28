@@ -23,6 +23,7 @@ from tcxreader.tcxreader import TCXReader
 
 from src.sync_agent import SyncAgent
 
+
 class Sport(Enum):
     """Supported sports enumeration."""
     BIKE = "Bike"
@@ -39,8 +40,7 @@ class AnalysisConfig:
 
     # Instantiate and run the SyncAgent
     sync_agent = SyncAgent()
-    athlete_id = "example_athlete_id"  # Replace with actual athlete ID
-    sync_agent.schedule_weekly_sync(athlete_id)
+    sync_agent.schedule_weekly_sync()
 
 
 @dataclass
