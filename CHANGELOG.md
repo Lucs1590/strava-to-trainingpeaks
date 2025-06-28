@@ -1,3 +1,23 @@
+## 1.2.0 (2025-06-27)
+
+### Feat
+
+- improve error handling in TCXProcessor by raising a more descriptive exception
+- initialize sport attribute in TCXProcessor for improved state management
+- refine analysis prompt template for enhanced clarity and actionable insights
+- enhance analysis prompt template for comprehensive performance insights
+- refactor TCX processing and add AI analysis capabilities
+
+### Fix
+
+- improve error handling and logging in TCXProcessor and TrackpointProcessor
+
+### Refactor
+
+- remove unnecessary break statement in TrackpointProcessor
+- move logging setup to a standalone function and simplify logger initialization in TCXProcessor
+- simplify file path retrieval logic in TCXProcessor
+
 ## 1.1.0 (2024-12-14)
 
 ### Feat
