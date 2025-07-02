@@ -1,7 +1,4 @@
 import unittest
-import os
-import time
-import logging
 
 from datetime import datetime, timedelta
 from unittest.mock import patch, MagicMock, call
@@ -27,7 +24,7 @@ class TestSyncAgent(unittest.TestCase):
     @patch('src.sync_agent.ChatOpenAI')
     def test_init_with_all_env_vars(self, mock_chat_openai, mock_create_agent, mock_file_handler, mock_getenv):
         """Test SyncAgent initialization with all environment variables present."""
-        mock_getenv.side_effect = lambda key: self.test_env_vars.get(key)
+        mock_getenv.side_effect = self.test_env_vars.get
         mock_handler = MagicMock()
         mock_file_handler.return_value = mock_handler
         mock_agent = MagicMock()
@@ -50,7 +47,7 @@ class TestSyncAgent(unittest.TestCase):
         """Test SyncAgent initialization without OpenAI API key."""
         env_vars = self.test_env_vars.copy()
         env_vars['OPENAI_API_KEY'] = None
-        mock_getenv.side_effect = lambda key: env_vars.get(key)
+        mock_getenv.side_effect = env_vars.get
         mock_handler = MagicMock()
         mock_file_handler.return_value = mock_handler
 
@@ -63,7 +60,7 @@ class TestSyncAgent(unittest.TestCase):
     @patch('src.sync_agent.create_openai_functions_agent')
     def test_init_langchain_agent_exception(self, mock_create_agent, mock_file_handler, mock_getenv):
         """Test SyncAgent initialization when LangChain agent creation fails."""
-        mock_getenv.side_effect = lambda key: self.test_env_vars.get(key)
+        mock_getenv.side_effect = self.test_env_vars.get
         mock_handler = MagicMock()
         mock_file_handler.return_value = mock_handler
         mock_create_agent.side_effect = Exception(
@@ -78,7 +75,7 @@ class TestSyncAgent(unittest.TestCase):
     @patch('src.sync_agent.requests.get')
     def test_get_workouts_from_strava_success(self, mock_get, mock_file_handler, mock_getenv):
         """Test successful retrieval of workouts from Strava API."""
-        mock_getenv.side_effect = lambda key: self.test_env_vars.get(key)
+        mock_getenv.side_effect = self.test_env_vars.get
         mock_handler = MagicMock()
         mock_file_handler.return_value = mock_handler
 
@@ -112,7 +109,7 @@ class TestSyncAgent(unittest.TestCase):
     @patch('src.sync_agent.requests.get')
     def test_get_workouts_from_strava_error(self, mock_get, mock_file_handler, mock_getenv):
         """Test error handling when Strava API returns non-200 status."""
-        mock_getenv.side_effect = lambda key: self.test_env_vars.get(key)
+        mock_getenv.side_effect = self.test_env_vars.get
         mock_handler = MagicMock()
         mock_file_handler.return_value = mock_handler
 
@@ -135,7 +132,7 @@ class TestSyncAgent(unittest.TestCase):
     @patch('src.sync_agent.time.sleep')
     def test_push_workouts_to_trainingpeaks(self, mock_sleep, mock_driver_manager, mock_chrome, mock_file_handler, mock_getenv):
         """Test pushing workouts to TrainingPeaks using Selenium."""
-        mock_getenv.side_effect = lambda key: self.test_env_vars.get(key)
+        mock_getenv.side_effect = self.test_env_vars.get
         mock_handler = MagicMock()
         mock_file_handler.return_value = mock_handler
 
@@ -186,7 +183,7 @@ class TestSyncAgent(unittest.TestCase):
     @patch('src.sync_agent.datetime')
     def test_sync_workouts_for_week(self, mock_datetime, mock_file_handler, mock_getenv):
         """Test weekly workout synchronization."""
-        mock_getenv.side_effect = lambda key: self.test_env_vars.get(key)
+        mock_getenv.side_effect = self.test_env_vars.get
         mock_handler = MagicMock()
         mock_file_handler.return_value = mock_handler
 
@@ -219,7 +216,7 @@ class TestSyncAgent(unittest.TestCase):
     @patch('src.sync_agent.time.sleep')
     def test_handle_api_rate_limits_success(self, mock_sleep, mock_file_handler, mock_getenv):
         """Test successful API call with rate limit handling."""
-        mock_getenv.side_effect = lambda key: self.test_env_vars.get(key)
+        mock_getenv.side_effect = self.test_env_vars.get
         mock_handler = MagicMock()
         mock_file_handler.return_value = mock_handler
 
@@ -240,7 +237,7 @@ class TestSyncAgent(unittest.TestCase):
     @patch('src.sync_agent.time.sleep')
     def test_handle_api_rate_limits_retry_then_success(self, mock_sleep, mock_file_handler, mock_getenv):
         """Test API call that fails initially but succeeds on retry."""
-        mock_getenv.side_effect = lambda key: self.test_env_vars.get(key)
+        mock_getenv.side_effect = self.test_env_vars.get
         mock_handler = MagicMock()
         mock_file_handler.return_value = mock_handler
 
@@ -265,7 +262,7 @@ class TestSyncAgent(unittest.TestCase):
     @patch('src.sync_agent.time.sleep')
     def test_handle_api_rate_limits_max_retries_exceeded(self, mock_sleep, mock_file_handler, mock_getenv):
         """Test API call that fails and exceeds maximum retries."""
-        mock_getenv.side_effect = lambda key: self.test_env_vars.get(key)
+        mock_getenv.side_effect = self.test_env_vars.get
         mock_handler = MagicMock()
         mock_file_handler.return_value = mock_handler
 
@@ -289,7 +286,7 @@ class TestSyncAgent(unittest.TestCase):
     @patch('src.sync_agent.time.sleep')
     def test_schedule_weekly_sync(self, mock_sleep, mock_run_pending, mock_every, mock_file_handler, mock_getenv):
         """Test scheduling of weekly synchronization."""
-        mock_getenv.side_effect = lambda key: self.test_env_vars.get(key)
+        mock_getenv.side_effect = self.test_env_vars.get
         mock_handler = MagicMock()
         mock_file_handler.return_value = mock_handler
 
