@@ -289,10 +289,12 @@ class TCXProcessor:
 
         llm = ChatOpenAI(
             openai_api_key=os.getenv("OPENAI_API_KEY"),
-            model_name="gpt-4o-mini",
-            max_tokens=2000,
-            temperature=0.6,
-            max_retries=5
+            model="gpt-5-mini",
+            output_version="responses/v1",
+            reasoning={"effort": "minimal"},
+            model_kwargs={"text": {"verbosity": "high"}},
+            max_retries=8,
+            timeout=120
         )
 
         response = llm.invoke(prompt)
