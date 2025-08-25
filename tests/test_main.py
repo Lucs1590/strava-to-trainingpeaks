@@ -594,7 +594,7 @@ class TestMain(unittest.TestCase):
 
             mock_llm_instance = unittest.mock.Mock()
             mock_response = unittest.mock.Mock()
-            mock_response.content = "LLM RESULT"
+            mock_response.content = [{'test': 'value'}, {"text": "LLM RESULT"}]
             mock_llm_instance.invoke.return_value = mock_response
             mock_chat_openai.return_value = mock_llm_instance
 
@@ -617,7 +617,7 @@ class TestMain(unittest.TestCase):
             )
             mock_chat_openai.assert_called_once_with(
                 openai_api_key="testkey",
-                model_name="gpt-5-mini",
+                model="gpt-5-mini",
                 output_version="responses/v1",
                 reasoning={"effort": "minimal"},
                 model_kwargs={"text": {"verbosity": "high"}},
