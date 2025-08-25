@@ -73,9 +73,15 @@ class TestMain(unittest.TestCase):
     def test_tcx_processor_get_analysis_prompt_template(self):
         processor = TCXProcessor()
         prompt_no_plan = processor._get_analysis_prompt_template(False)
-        self.assertIn("ANALYSIS STRUCTURE", prompt_no_plan)
+        self.assertIn(
+            "you are an expert ai",
+            prompt_no_plan.lower()
+        )
         prompt_with_plan = processor._get_analysis_prompt_template(True)
-        self.assertIn("TRAINING PLAN EXECUTION ANALYSIS", prompt_with_plan)
+        self.assertIn(
+            "training plan execution analysis",
+            prompt_with_plan.lower()
+        )
 
     def test_tcx_processor_validate_tcx_file_empty(self):
         processor = TCXProcessor()
@@ -567,7 +573,9 @@ class TestMain(unittest.TestCase):
         mock_tcx_data = unittest.mock.Mock()
         mock_sport = main_module.Sport.BIKE
         mock_config = main_module.AnalysisConfig(
-            training_plan="Plan", language="English")
+            training_plan="Plan",
+            language="English"
+        )
 
         # Patch all dependencies inside _analyze_with_llm
         with patch.object(processor, "_preprocess_trackpoints") as mock_preprocess, \
@@ -591,12 +599,16 @@ class TestMain(unittest.TestCase):
             mock_chat_openai.return_value = mock_llm_instance
 
             result = processor._analyze_with_llm(
-                mock_tcx_data, mock_sport, mock_config)
+                mock_tcx_data,
+                mock_sport,
+                mock_config
+            )
 
             mock_preprocess.assert_called_once_with(mock_tcx_data)
             mock_prompt_template.assert_called_once_with("Plan")
             mock_prompt_template_cls.from_template.assert_called_once_with(
-                "TEMPLATE")
+                "TEMPLATE"
+            )
             mock_prompt_instance.format.assert_called_once_with(
                 sport=mock_sport.value,
                 training_data=mock_df.to_csv(index=False),
