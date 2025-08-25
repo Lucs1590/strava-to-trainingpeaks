@@ -15,11 +15,14 @@ The idea for this script came from the need to synchronize my triathlon training
 
 ### Features
 
-- Downloads activities from Strava based on activity IDs.
+- Downloads activities from Strava based on activity IDs or via API integration.
+- **NEW**: Model Context Protocol (MCP) integration for AI assistant connectivity.
 - Assisted mode for choosing the sport and activity download/upload options.
 - Formats TCX files for specific sports like swimming.
 - Validates TCX files for running and biking activities.
 - Indents TCX files for better readability.
+- **NEW**: Strava API integration for programmatic access to activities.
+- **NEW**: Activity synchronization and analysis through MCP tools.
 
 [Watch the video guide on exporting from Strava to TrainingPeaks manually](https://www.youtube.com/watch?v=Y0nWzOAM8_M)
 
@@ -60,6 +63,20 @@ cd strava-to-trainingpeaks
 pip install -r requirements.txt
 ```
 
+### Environment Configuration (for MCP integration)
+
+For Strava API access and AI analysis features, create a `.env` file in the project root:
+
+```bash
+STRAVA_CLIENT_ID=your_client_id_here
+STRAVA_CLIENT_SECRET=your_client_secret_here
+STRAVA_ACCESS_TOKEN=your_access_token_here  # Optional, can be obtained via OAuth
+STRAVA_REFRESH_TOKEN=your_refresh_token_here  # Optional, can be obtained via OAuth
+OPENAI_API_KEY=your_openai_key_here  # For AI analysis features
+```
+
+Get Strava API credentials at [Strava Developers](https://developers.strava.com/).
+
 4. Install the package globally;
 
 ```bash
@@ -74,7 +91,33 @@ strava-to-trainingpeaks
 
 ## Usage
 
+### Traditional CLI Mode
+
 Follow the on-screen instructions after running the script. You'll be prompted to choose the sport, select activity download options, and provide the file path if necessary.
+
+```bash
+python src/main.py
+```
+
+### MCP Integration (NEW)
+
+The tool now supports Model Context Protocol (MCP) for AI assistant integration:
+
+```bash
+# List available MCP tools
+python src/mcp_cli.py list-tools
+
+# List recent activities from Strava API
+python src/mcp_cli.py list-activities --limit 10
+
+# Analyze a specific activity with AI
+python src/mcp_cli.py analyze-activity --activity-id 12345 --language "English"
+
+# Run interactive MCP server
+python src/mcp_server_main.py --interactive
+```
+
+For detailed MCP usage, see [MCP_INTEGRATION.md](MCP_INTEGRATION.md).
 
 ### Example Usage
 

@@ -9,3 +9,4 @@ questionary==2.1.0
 scipy==1.15.2
 tcxreader==0.4.11
 tqdm==4.67.1
+httpx==0.28.1
