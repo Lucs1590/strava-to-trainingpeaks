@@ -20,16 +20,24 @@ async def main():
     """Main CLI function."""
     parser = argparse.ArgumentParser(description="Strava MCP CLI")
     parser.add_argument("command", help="MCP command to execute", choices=[
+        # Strava commands
         "list-tools", "list-activities", "get-activity", "analyze-activity", 
-        "sync-activities", "get-auth-url", "authenticate"
+        "sync-activities", "get-auth-url", "authenticate",
+        # TrainingPeaks commands
+        "tp-auth-info", "tp-athlete", "tp-workouts", "tp-workout-detail",
+        "tp-upload", "sync-to-tp", "bulk-sync-to-tp", "tp-plans", 
+        "tp-planned-workouts", "tp-metrics"
     ])
     parser.add_argument("--activity-id", help="Strava activity ID")
+    parser.add_argument("--workout-id", help="TrainingPeaks workout ID")
     parser.add_argument("--limit", type=int, default=10, help="Limit for activities list")
     parser.add_argument("--days-back", type=int, default=30, help="Days to look back")
+    parser.add_argument("--days-ahead", type=int, default=30, help="Days to look ahead for planned workouts")
     parser.add_argument("--training-plan", default="", help="Training plan context for analysis")
     parser.add_argument("--language", default="English", help="Language for analysis")
     parser.add_argument("--code", help="OAuth authorization code")
     parser.add_argument("--include-analysis", action="store_true", help="Include AI analysis")
+    parser.add_argument("--include-tcx", action="store_true", default=True, help="Include TCX data for sync")
     parser.add_argument("--json", action="store_true", help="Output in JSON format")
     
     args = parser.parse_args()
@@ -176,6 +184,164 @@ async def main():
                     if 'athlete' in result:
                         athlete = result['athlete']
                         print(f"Welcome, {athlete.get('firstname', '')} {athlete.get('lastname', '')}!")
+        
+        # TrainingPeaks Commands
+        elif args.command == "tp-auth-info":
+            result = await mcp_server.handle_tool_call("get_trainingpeaks_auth_info", {})
+            if args.json:
+                print(json.dumps(result, indent=2))
+            else:
+                if "error" in result:
+                    print(f"Error: {result['error']}")
+                else:
+                    auth_info = result['auth_info']
+                    print("TrainingPeaks Authentication Status:")
+                    print("=" * 50)
+                    print(f"Authenticated: {auth_info['authenticated']}")
+                    if auth_info['auth_methods']:
+                        print(f"Available methods: {', '.join(auth_info['auth_methods'])}")
+                    else:
+                        print("No authentication methods configured")
+                        print("\nRequired environment variables:")
+                        for var in auth_info['required_env_vars']:
+                            print(f"  - {var}")
+        
+        elif args.command == "tp-athlete":
+            result = await mcp_server.handle_tool_call("get_trainingpeaks_athlete", {})
+            if args.json:
+                print(json.dumps(result, indent=2))
+            else:
+                if "error" in result:
+                    print(f"Error: {result['error']}")
+                else:
+                    athlete = result['athlete']
+                    print("TrainingPeaks Athlete Profile:")
+                    print("=" * 50)
+                    print(f"Name: {athlete.get('name', 'Unknown')}")
+                    print(f"Email: {athlete.get('email', 'Unknown')}")
+        
+        elif args.command == "tp-workouts":
+            result = await mcp_server.handle_tool_call("list_trainingpeaks_workouts", {
+                "days_back": args.days_back,
+                "limit": args.limit
+            })
+            if args.json:
+                print(json.dumps(result, indent=2))
+            else:
+                if "error" in result:
+                    print(f"Error: {result['error']}")
+                else:
+                    print(f"Found {result['count']} workouts:")
+                    print("=" * 50)
+                    for workout in result['workouts']:
+                        print(f"\nID: {workout.get('id', 'Unknown')}")
+                        print(f"Title: {workout.get('title', 'Untitled')}")
+                        print(f"Date: {workout.get('workoutDate', 'Unknown')}")
+                        print(f"Sport: {workout.get('sport', 'Unknown')}")
+                        if workout.get('distance'):
+                            print(f"Distance: {workout['distance']:.2f} km")
+                        if workout.get('duration'):
+                            print(f"Duration: {workout['duration'] // 60} minutes")
+        
+        elif args.command == "sync-to-tp":
+            if not args.activity_id:
+                print("Error: --activity-id is required for sync-to-tp command")
+                sys.exit(1)
+            
+            result = await mcp_server.handle_tool_call("sync_strava_to_trainingpeaks", {
+                "activity_id": args.activity_id,
+                "include_tcx": True
+            })
+            if args.json:
+                print(json.dumps(result, indent=2))
+            else:
+                if "error" in result:
+                    print(f"Error: {result['error']}")
+                else:
+                    print("Sync Successful!")
+                    print("=" * 50)
+                    print(f"Activity ID: {result['activity_id']}")
+                    sync_result = result['sync_result']
+                    if sync_result['success']:
+                        print("Successfully synced to TrainingPeaks")
+                    else:
+                        print(f"Sync failed: {sync_result.get('error', 'Unknown error')}")
+        
+        elif args.command == "bulk-sync-to-tp":
+            result = await mcp_server.handle_tool_call("bulk_sync_strava_to_trainingpeaks", {
+                "days_back": args.days_back,
+                "limit": args.limit
+            })
+            if args.json:
+                print(json.dumps(result, indent=2))
+            else:
+                if "error" in result:
+                    print(f"Error: {result['error']}")
+                else:
+                    print("Bulk Sync Results:")
+                    print("=" * 50)
+                    print(f"Total activities: {result['total_activities']}")
+                    print(f"Successful syncs: {result['successful_syncs']}")
+                    print(f"Failed syncs: {result['failed_syncs']}")
+                    
+                    if result['results']:
+                        print("\nDetails:")
+                        for item in result['results']:
+                            status_icon = "✓" if item['status'] == 'success' else "✗"
+                            print(f"  {status_icon} {item['activity_name']} (ID: {item['activity_id']})")
+                            if item['status'] == 'error':
+                                print(f"    Error: {item.get('error', 'Unknown error')}")
+        
+        elif args.command == "tp-plans":
+            result = await mcp_server.handle_tool_call("get_training_plans", {})
+            if args.json:
+                print(json.dumps(result, indent=2))
+            else:
+                if "error" in result:
+                    print(f"Error: {result['error']}")
+                else:
+                    print(f"Found {result['count']} training plans:")
+                    print("=" * 50)
+                    for plan in result['plans']:
+                        print(f"\nID: {plan.get('id', 'Unknown')}")
+                        print(f"Name: {plan.get('name', 'Untitled')}")
+                        print(f"Start Date: {plan.get('startDate', 'Unknown')}")
+                        print(f"End Date: {plan.get('endDate', 'Unknown')}")
+        
+        elif args.command == "tp-planned-workouts":
+            result = await mcp_server.handle_tool_call("get_planned_workouts", {
+                "days_ahead": args.days_back  # Reuse days_back for days_ahead
+            })
+            if args.json:
+                print(json.dumps(result, indent=2))
+            else:
+                if "error" in result:
+                    print(f"Error: {result['error']}")
+                else:
+                    print(f"Found {result['count']} planned workouts:")
+                    print("=" * 50)
+                    for workout in result['planned_workouts']:
+                        print(f"\nDate: {workout.get('workoutDate', 'Unknown')}")
+                        print(f"Title: {workout.get('title', 'Untitled')}")
+                        print(f"Sport: {workout.get('sport', 'Unknown')}")
+                        print(f"Description: {workout.get('description', 'No description')}")
+        
+        elif args.command == "tp-metrics":
+            result = await mcp_server.handle_tool_call("get_training_metrics", {
+                "days_back": args.days_back
+            })
+            if args.json:
+                print(json.dumps(result, indent=2))
+            else:
+                if "error" in result:
+                    print(f"Error: {result['error']}")
+                else:
+                    metrics = result['metrics']
+                    print("Training Metrics:")
+                    print("=" * 50)
+                    print(f"Period: Last {args.days_back} days")
+                    for key, value in metrics.items():
+                        print(f"{key}: {value}")
     
     except KeyboardInterrupt:
         print("\nOperation cancelled by user")

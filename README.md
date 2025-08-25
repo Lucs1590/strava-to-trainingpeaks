@@ -17,12 +17,15 @@ The idea for this script came from the need to synchronize my triathlon training
 
 - Downloads activities from Strava based on activity IDs or via API integration.
 - **NEW**: Model Context Protocol (MCP) integration for AI assistant connectivity.
+- **NEW**: TrainingPeaks API integration for comprehensive workout management.
 - Assisted mode for choosing the sport and activity download/upload options.
 - Formats TCX files for specific sports like swimming.
 - Validates TCX files for running and biking activities.
 - Indents TCX files for better readability.
 - **NEW**: Strava API integration for programmatic access to activities.
 - **NEW**: Activity synchronization and analysis through MCP tools.
+- **NEW**: Bidirectional sync between Strava and TrainingPeaks.
+- **NEW**: Training plan management and workout planning.
 
 [Watch the video guide on exporting from Strava to TrainingPeaks manually](https://www.youtube.com/watch?v=Y0nWzOAM8_M)
 
@@ -65,17 +68,29 @@ pip install -r requirements.txt
 
 ### Environment Configuration (for MCP integration)
 
-For Strava API access and AI analysis features, create a `.env` file in the project root:
+For Strava API access, TrainingPeaks integration, and AI analysis features, create a `.env` file in the project root:
 
 ```bash
+# Strava API Configuration
 STRAVA_CLIENT_ID=your_client_id_here
 STRAVA_CLIENT_SECRET=your_client_secret_here
 STRAVA_ACCESS_TOKEN=your_access_token_here  # Optional, can be obtained via OAuth
 STRAVA_REFRESH_TOKEN=your_refresh_token_here  # Optional, can be obtained via OAuth
+
+# TrainingPeaks API Configuration (choose one method)
+TRAININGPEAKS_ACCESS_TOKEN=your_access_token_here  # Preferred: OAuth token
+# OR
+TRAININGPEAKS_API_KEY=your_api_key_here  # Alternative: API key
+# OR
+TRAININGPEAKS_USERNAME=your_username_here  # Legacy: Basic auth
+TRAININGPEAKS_PASSWORD=your_password_here
+
+# AI Analysis
 OPENAI_API_KEY=your_openai_key_here  # For AI analysis features
 ```
 
 Get Strava API credentials at [Strava Developers](https://developers.strava.com/).
+Get TrainingPeaks API credentials at [TrainingPeaks Developer Portal](https://www.trainingpeaks.com/developer/).
 
 4. Install the package globally;
 
@@ -101,17 +116,45 @@ python src/main.py
 
 ### MCP Integration (NEW)
 
-The tool now supports Model Context Protocol (MCP) for AI assistant integration:
+The tool now supports Model Context Protocol (MCP) for AI assistant integration with both Strava and TrainingPeaks:
 
+#### Strava Tools
 ```bash
-# List available MCP tools
-python src/mcp_cli.py list-tools
-
 # List recent activities from Strava API
 python src/mcp_cli.py list-activities --limit 10
 
 # Analyze a specific activity with AI
 python src/mcp_cli.py analyze-activity --activity-id 12345 --language "English"
+
+# Get Strava OAuth authorization URL
+python src/mcp_cli.py get-auth-url
+```
+
+#### TrainingPeaks Tools
+```bash
+# Check TrainingPeaks authentication status
+python src/mcp_cli.py tp-auth-info
+
+# List TrainingPeaks workouts
+python src/mcp_cli.py tp-workouts --days-back 30 --limit 20
+
+# Get training plans
+python src/mcp_cli.py tp-plans
+
+# Get planned workouts
+python src/mcp_cli.py tp-planned-workouts --days-ahead 30
+
+# Get training metrics
+python src/mcp_cli.py tp-metrics --days-back 30
+```
+
+#### Synchronization Tools
+```bash
+# Sync a single Strava activity to TrainingPeaks
+python src/mcp_cli.py sync-to-tp --activity-id 12345
+
+# Bulk sync recent activities from Strava to TrainingPeaks
+python src/mcp_cli.py bulk-sync-to-tp --days-back 7 --limit 10
 
 # Run interactive MCP server
 python src/mcp_server_main.py --interactive
