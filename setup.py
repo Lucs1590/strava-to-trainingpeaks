@@ -33,11 +33,14 @@ setup(
         "questionary==2.1.0",
         "scipy==1.15.2",
         "tcxreader==0.4.11",
-        "tqdm==4.67.1"
+        "tqdm==4.67.1",
+        "httpx==0.28.1"
     ],
     entry_points={
         "console_scripts": [
             "strava-to-trainingpeaks=src.main:main",
+            "strava-mcp=src.mcp_cli:main",
+            "strava-mcp-server=src.mcp_server_main:main",
         ],
     },
 )
