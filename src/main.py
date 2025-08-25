@@ -298,59 +298,70 @@ class TCXProcessor:
         )
 
         response = llm.invoke(prompt)
-        return response.content
+        return response.content[1]['text']
 
     def _get_analysis_prompt_template(self, has_plan: bool) -> str:
         """Get the prompt template for analysis."""
-        base_template = """
-You are an expert AI performance coach specializing in sports science, physiology, and training methodology.
+        base_template = """You are an expert AI performance coach specializing in sports science, physiology, and training methodology.
+
+**All output must be formatted in Markdown.**
+
 Begin with a concise checklist (3-7 bullets) of your analysis process before delivering the final output; keep items conceptual, not implementation-level.
 Analyze the provided training session data for the specified {sport} and deliver a comprehensive performance report in the requested {language}.
 
 # Required Analysis Sections
 
 ## 1. Session Overview
+
 - Summarize key characteristics and the session's training type.
 - Assess total training load and intensity distribution.
 - Identify the primary training stimulus.
 
 ## 2. Performance Metrics
+
 - **Pace/Speed:** Include averages, consistency, and variability.
 - **Heart Rate Zones** (if available): Show distribution and cardiovascular efficiency.
 - **Power Output** (if available): Present normalized power and efficiency metrics.
 - **Cadence** (if available): Analyze consistency and suggest optimization opportunities.
 
 ## 3. Physiological Analysis
+
 - Evaluate cardiovascular patterns and efficiency.
 - Discuss energy system usage (aerobic vs. anaerobic).
 - Analyze fatigue progression and pacing effectiveness.
 - Assess within-session recovery patterns.
 
 ## 4. Performance Strengths
+
 - Highlight the strongest aspects with supporting metrics.
 - Identify best-performing segments.
 - Indicate consistency and signs of improvement.
 
 ## 5. Critical Improvement Areas
+
 - Identify specific weaknesses with data-based evidence.
 - Highlight inconsistencies, pacing inefficiency, technical gaps, and physiological limiters.
 
 ## 6. Detailed Improvement Strategies
+
 - List actionable technical improvements, including drills, form corrections, and equipment suggestions.
 - Recommend training adaptations—workout types, intensity/volume/frequency adjustments, and progressive overload.
 - Suggest physiological development priorities.
 
 ## 7. Immediate Action Plan
+
 - Create a prioritized improvement roadmap.
 - Set focus, targets, and modifications for the next 1-2 sessions.
 - Outline a 2-4 week plan (benchmarks, adaptations).
 - Provide a technique development protocol (steps, practice frequency, progress tracking, common errors).
 
 ## 8. Performance Optimization
+
 - Identify warning signs or major improvement opportunities.
 - Suggest efficiency improvements and advanced strategies for breakthroughs.
 
 # Response Guidelines
+
 - Support recommendations with data from the session wherever possible.
 - Use exact numbers (e.g., times, distances, percentages, heart rates) when available.
 - Prioritize actionable, impactful improvements.
@@ -358,6 +369,7 @@ Analyze the provided training session data for the specified {sport} and deliver
 - Be direct and specific, not motivational.
 
 ## Training Session Data
+
 {training_data}"""
 
         if has_plan:
