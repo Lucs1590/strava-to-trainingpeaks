@@ -486,6 +486,7 @@ class TestMain(unittest.TestCase):
         with patch.object(processor, "_ensure_openai_key") as mock_ensure_key, \
                 patch("src.main.questionary.text") as mock_text, \
                 patch.object(processor, "_analyze_with_llm", return_value="analysis result") as mock_analyze, \
+                patch.object(processor, "_create_audio_summary") as mock_audio, \
                 patch.object(processor.logger, "info") as mock_info:
 
             # Mock questionary.text for training_plan and language
@@ -501,6 +502,7 @@ class TestMain(unittest.TestCase):
             mock_ensure_key.assert_called_once()
             self.assertEqual(mock_text.call_count, 2)
             mock_analyze.assert_called_once()
+            mock_audio.assert_called_once_with("analysis result")
             # Check that logger.info was called with expected messages
             info_calls = [call.args[0] for call in mock_info.call_args_list]
             self.assertTrue(
@@ -517,6 +519,7 @@ class TestMain(unittest.TestCase):
         with patch.object(processor, "_ensure_openai_key") as mock_ensure_key, \
                 patch("src.main.questionary.text") as mock_text, \
                 patch.object(processor, "_analyze_with_llm", return_value="result") as mock_analyze, \
+                patch.object(processor, "_create_audio_summary") as mock_audio, \
                 patch.object(processor.logger, "info") as mock_info:
 
             # Simulate user pressing enter for both questions (empty plan, default language)
@@ -531,6 +534,7 @@ class TestMain(unittest.TestCase):
             mock_ensure_key.assert_called_once()
             self.assertEqual(mock_text.call_count, 2)
             mock_analyze.assert_called_once()
+            mock_audio.assert_called_once_with("result")
             info_calls = [call.args[0] for call in mock_info.call_args_list]
             self.assertTrue(
                 any("Performing AI analysis" in msg for msg in info_calls))
@@ -874,6 +878,127 @@ class TestMain(unittest.TestCase):
         result = processor._apply_euclidean_filtering(df, 0.9)
         # Should not remove more than len(df)-10 rows
         self.assertGreaterEqual(len(result), 10)
+
+    def test_create_audio_summary_user_declines(self):
+        processor = TCXProcessor()
+        
+        with patch("src.main.questionary.confirm") as mock_confirm, \
+                patch.object(processor.logger, "info") as mock_info:
+            
+            mock_confirm.return_value.ask.return_value = False
+            
+            processor._create_audio_summary("Test analysis text")
+            
+            mock_confirm.assert_called_once_with(
+                "Do you want to generate an audio summary of the analysis?",
+                default=False
+            )
+            # Should not log audio generation messages
+            info_calls = [call.args[0] for call in mock_info.call_args_list]
+            self.assertFalse(
+                any("Generating audio summary" in msg for msg in info_calls))
+
+    def test_create_audio_summary_user_accepts(self):
+        processor = TCXProcessor()
+        
+        with patch("src.main.questionary.confirm") as mock_confirm, \
+                patch("src.main.pyttsx3.init") as mock_pyttsx_init, \
+                patch("src.main.time.time", return_value=1234567890), \
+                patch.object(processor, "_clean_text_for_speech", return_value="Clean text") as mock_clean, \
+                patch.object(processor.logger, "info") as mock_info:
+            
+            mock_confirm.return_value.ask.return_value = True
+            mock_engine = unittest.mock.Mock()
+            mock_engine.getProperty.return_value = 200
+            mock_pyttsx_init.return_value = mock_engine
+            
+            processor._create_audio_summary("## Test Analysis\n**Bold text**")
+            
+            mock_confirm.assert_called_once()
+            mock_pyttsx_init.assert_called_once()
+            mock_clean.assert_called_once_with("## Test Analysis\n**Bold text**")
+            mock_engine.setProperty.assert_called_once_with('rate', 150)  # 200 - 50
+            mock_engine.save_to_file.assert_called_once_with(
+                "Clean text", "training_analysis_summary_1234567890.wav")
+            mock_engine.runAndWait.assert_called_once()
+            
+            # Check log messages - look at both the format string and the args
+            info_calls = mock_info.call_args_list
+            self.assertTrue(
+                any("Generating audio summary" in call.args[0] for call in info_calls))
+            
+            # Check for the file logging call with format string
+            file_log_found = False
+            for call in info_calls:
+                if "Audio summary saved as:" in call.args[0] and len(call.args) > 1:
+                    self.assertEqual(call.args[1], "training_analysis_summary_1234567890.wav")
+                    file_log_found = True
+                    break
+            self.assertTrue(file_log_found, "Expected file logging call not found")
+
+    def test_create_audio_summary_exception_handling(self):
+        processor = TCXProcessor()
+        
+        with patch("src.main.questionary.confirm") as mock_confirm, \
+                patch("src.main.pyttsx3.init", side_effect=Exception("TTS Error")) as mock_pyttsx_init, \
+                patch.object(processor.logger, "warning") as mock_warning:
+            
+            mock_confirm.return_value.ask.return_value = True
+            
+            processor._create_audio_summary("Test text")
+            
+            mock_warning.assert_called_once_with(
+                "Failed to generate audio summary: %s", "TTS Error")
+
+    def test_clean_text_for_speech(self):
+        processor = TCXProcessor()
+        
+        # Test markdown cleanup
+        input_text = """
+# Session Overview
+        
+- Summarize key characteristics
+- **Pace/Speed:** Include averages
+- *Heart Rate*: Show distribution
+        
+## Performance Metrics
+        
+- Test item 1
+* Test item 2
+        
+Multiple    spaces    and
+
+
+newlines.
+        """
+        
+        result = processor._clean_text_for_speech(input_text)
+        
+        # Check that markdown formatting is removed
+        self.assertNotIn('#', result)
+        self.assertNotIn('**', result)
+        self.assertNotIn('*', result)
+        self.assertNotIn('-', result)
+        
+        # Check that text is properly spaced
+        self.assertNotIn('  ', result)  # No double spaces
+        self.assertNotIn('\n', result)  # No newlines
+        
+        # Check basic content is preserved
+        self.assertIn('Session Overview', result)
+        self.assertIn('Performance Metrics', result)
+
+    def test_clean_text_for_speech_length_limit(self):
+        processor = TCXProcessor()
+        
+        # Create a long text (over 1000 characters)
+        long_text = "A" * 1500
+        
+        result = processor._clean_text_for_speech(long_text)
+        
+        # Should be limited to 1003 characters (1000 + "...")
+        self.assertEqual(len(result), 1003)
+        self.assertTrue(result.endswith("..."))
 
 
 if __name__ == '__main__':
