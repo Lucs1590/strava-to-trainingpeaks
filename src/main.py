@@ -11,6 +11,7 @@ from typing import Optional, Tuple
 
 import numpy as np
 import pandas as pd
+import openai
 import questionary
 
 from tqdm import tqdm
@@ -261,6 +262,68 @@ class TCXProcessor:
         )
         self.logger.info("AI analysis completed successfully")
         self.logger.info("AI response:\n%s", analysis_result)
+        
+        # Create audio summary of the AI response
+        self._create_audio_summary(analysis_result)
+
+    def _create_audio_summary(self, analysis_text: str) -> None:
+        """Create an audio summary of the AI analysis using OpenAI TTS."""
+        try:
+            # Ask user if they want audio summary
+            want_audio = questionary.confirm(
+                "Do you want to generate an audio summary of the analysis?",
+                default=False
+            ).ask()
+            
+            if not want_audio:
+                return
+                
+            self.logger.info("Generating audio summary using OpenAI TTS...")
+            
+            # Initialize OpenAI client
+            client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+            
+            # Remove markdown formatting for better speech
+            clean_text = self._clean_text_for_speech(analysis_text)
+            
+            # Generate audio using OpenAI TTS
+            response = client.audio.speech.create(
+                model="tts-1",
+                voice="alloy",  # Can be: alloy, echo, fable, onyx, nova, shimmer
+                input=clean_text,
+                speed=0.9  # Slightly slower for better comprehension
+            )
+            
+            # Save audio file
+            audio_filename = f"training_analysis_summary_{int(time.time())}.mp3"
+            response.stream_to_file(audio_filename)
+            
+            self.logger.info("Audio summary saved as: %s", audio_filename)
+            
+        except Exception as err:
+            self.logger.warning("Failed to generate audio summary: %s", str(err))
+
+    def _clean_text_for_speech(self, text: str) -> str:
+        """Clean markdown formatting and prepare text for speech synthesis."""
+        # Remove markdown headers
+        text = re.sub(r'^#+\s*', '', text, flags=re.MULTILINE)
+        
+        # Remove markdown bold/italic markers
+        text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)
+        text = re.sub(r'\*([^*]+)\*', r'\1', text)
+        
+        # Remove markdown list markers
+        text = re.sub(r'^[-*]\s*', '', text, flags=re.MULTILINE)
+        
+        # Clean up extra whitespace and newlines
+        text = re.sub(r'\n+', '. ', text)
+        text = re.sub(r'\s+', ' ', text)
+        
+        # Limit text length for reasonable audio duration (first 1000 characters)
+        if len(text) > 1000:
+            text = text[:1000] + "..."
+            
+        return text.strip()
 
     def _ensure_openai_key(self) -> None:
         """Ensure OpenAI API key is available."""
