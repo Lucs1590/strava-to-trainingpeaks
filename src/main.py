@@ -11,7 +11,7 @@ from typing import Optional, Tuple
 
 import numpy as np
 import pandas as pd
-import pyttsx3
+import openai
 import questionary
 
 from tqdm import tqdm
@@ -267,7 +267,7 @@ class TCXProcessor:
         self._create_audio_summary(analysis_result)
 
     def _create_audio_summary(self, analysis_text: str) -> None:
-        """Create an audio summary of the AI analysis."""
+        """Create an audio summary of the AI analysis using OpenAI TTS."""
         try:
             # Ask user if they want audio summary
             want_audio = questionary.confirm(
@@ -278,22 +278,25 @@ class TCXProcessor:
             if not want_audio:
                 return
                 
-            self.logger.info("Generating audio summary...")
+            self.logger.info("Generating audio summary using OpenAI TTS...")
             
-            # Initialize text-to-speech engine
-            engine = pyttsx3.init()
-            
-            # Set speech rate (optional - make it a bit slower for better comprehension)
-            rate = engine.getProperty('rate')
-            engine.setProperty('rate', rate - 50)
+            # Initialize OpenAI client
+            client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
             
             # Remove markdown formatting for better speech
             clean_text = self._clean_text_for_speech(analysis_text)
             
-            # Generate and save audio file
-            audio_filename = f"training_analysis_summary_{int(time.time())}.wav"
-            engine.save_to_file(clean_text, audio_filename)
-            engine.runAndWait()
+            # Generate audio using OpenAI TTS
+            response = client.audio.speech.create(
+                model="tts-1",
+                voice="alloy",  # Can be: alloy, echo, fable, onyx, nova, shimmer
+                input=clean_text,
+                speed=0.9  # Slightly slower for better comprehension
+            )
+            
+            # Save audio file
+            audio_filename = f"training_analysis_summary_{int(time.time())}.mp3"
+            response.stream_to_file(audio_filename)
             
             self.logger.info("Audio summary saved as: %s", audio_filename)
             

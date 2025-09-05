@@ -902,36 +902,41 @@ class TestMain(unittest.TestCase):
         processor = TCXProcessor()
         
         with patch("src.main.questionary.confirm") as mock_confirm, \
-                patch("src.main.pyttsx3.init") as mock_pyttsx_init, \
+                patch("src.main.openai.OpenAI") as mock_openai_class, \
                 patch("src.main.time.time", return_value=1234567890), \
                 patch.object(processor, "_clean_text_for_speech", return_value="Clean text") as mock_clean, \
                 patch.object(processor.logger, "info") as mock_info:
             
             mock_confirm.return_value.ask.return_value = True
-            mock_engine = unittest.mock.Mock()
-            mock_engine.getProperty.return_value = 200
-            mock_pyttsx_init.return_value = mock_engine
+            mock_client = unittest.mock.Mock()
+            mock_response = unittest.mock.Mock()
+            mock_client.audio.speech.create.return_value = mock_response
+            mock_openai_class.return_value = mock_client
             
             processor._create_audio_summary("## Test Analysis\n**Bold text**")
             
             mock_confirm.assert_called_once()
-            mock_pyttsx_init.assert_called_once()
+            mock_openai_class.assert_called_once()
             mock_clean.assert_called_once_with("## Test Analysis\n**Bold text**")
-            mock_engine.setProperty.assert_called_once_with('rate', 150)  # 200 - 50
-            mock_engine.save_to_file.assert_called_once_with(
-                "Clean text", "training_analysis_summary_1234567890.wav")
-            mock_engine.runAndWait.assert_called_once()
+            mock_client.audio.speech.create.assert_called_once_with(
+                model="tts-1",
+                voice="alloy",
+                input="Clean text",
+                speed=0.9
+            )
+            mock_response.stream_to_file.assert_called_once_with(
+                "training_analysis_summary_1234567890.mp3")
             
-            # Check log messages - look at both the format string and the args
+            # Check log messages
             info_calls = mock_info.call_args_list
             self.assertTrue(
-                any("Generating audio summary" in call.args[0] for call in info_calls))
+                any("Generating audio summary using OpenAI TTS" in call.args[0] for call in info_calls))
             
-            # Check for the file logging call with format string
+            # Check for the file logging call
             file_log_found = False
             for call in info_calls:
                 if "Audio summary saved as:" in call.args[0] and len(call.args) > 1:
-                    self.assertEqual(call.args[1], "training_analysis_summary_1234567890.wav")
+                    self.assertEqual(call.args[1], "training_analysis_summary_1234567890.mp3")
                     file_log_found = True
                     break
             self.assertTrue(file_log_found, "Expected file logging call not found")
@@ -940,7 +945,7 @@ class TestMain(unittest.TestCase):
         processor = TCXProcessor()
         
         with patch("src.main.questionary.confirm") as mock_confirm, \
-                patch("src.main.pyttsx3.init", side_effect=Exception("TTS Error")) as mock_pyttsx_init, \
+                patch("src.main.openai.OpenAI", side_effect=Exception("OpenAI TTS Error")) as mock_openai_class, \
                 patch.object(processor.logger, "warning") as mock_warning:
             
             mock_confirm.return_value.ask.return_value = True
@@ -948,7 +953,7 @@ class TestMain(unittest.TestCase):
             processor._create_audio_summary("Test text")
             
             mock_warning.assert_called_once_with(
-                "Failed to generate audio summary: %s", "TTS Error")
+                "Failed to generate audio summary: %s", "OpenAI TTS Error")
 
     def test_clean_text_for_speech(self):
         processor = TCXProcessor()
