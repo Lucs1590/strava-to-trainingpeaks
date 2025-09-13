@@ -276,23 +276,32 @@ class TCXProcessor:
 
     def _create_audio_summary(self, analysis_text: str) -> None:
         """Create an audio summary of the AI analysis using OpenAI TTS."""
+        self.logger.info("Generating audio summary using OpenAI TTS...")
         try:
-            self.logger.info("Generating audio summary using OpenAI TTS...")
-            client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+            api_key = os.getenv("OPENAI_API_KEY")
+            if not api_key:
+                self.logger.error("OpenAI API key not found. Aborting audio summary generation.")
+                return
+
+            client = openai.OpenAI(api_key=api_key)
             download_folder = Path.home() / "Downloads"
-            audio_filename = str(
-                download_folder /
-                f"training_analysis_summary_{int(time.time())}.mp3"
-            )
+            download_folder.mkdir(parents=True, exist_ok=True)
+            timestamp = int(time.time())
+            audio_filename = download_folder / f"training_analysis_summary_{timestamp}.mp3"
+
             clean_text = self._clean_text_for_speech(analysis_text)
-            with client.audio.speech.create(
+            if not clean_text:
+                self.logger.warning("Analysis text is empty after cleaning. No audio will be generated.")
+                return
+
+            response = client.audio.speech.create(
                 model="gpt-4o-mini-tts",
                 voice="alloy",
                 input=clean_text,
-                speed=1.25,
+                speed=1.1,
                 response_format="mp3"
-            ) as response:
-                response.stream_to_file(audio_filename, chunk_size=1024)
+            )
+            response.stream_to_file(str(audio_filename), chunk_size=1024)
             self.logger.info("Audio summary saved as: %s", audio_filename)
 
         except Exception as err:
@@ -312,9 +321,6 @@ class TCXProcessor:
 
         text = re.sub(r'\n+', '. ', text)
         text = re.sub(r'\s+', ' ', text)
-
-        if len(text) > 1000:
-            text = text[:1000] + "..."
 
         return text.strip()
 
