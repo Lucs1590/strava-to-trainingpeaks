@@ -995,6 +995,28 @@ newlines.
 
         self.assertEqual(len(result), 1500)
 
+    def test_should_perform_tss_true(self):
+        processor = TCXProcessor()
+        with patch('src.main.questionary.confirm') as mock_confirm:
+            mock_confirm.return_value.ask.return_value = True
+            result = processor._should_perform_tss()
+            mock_confirm.assert_called_once_with(
+                "Do you want to generate an audio summary of the analysis?",
+                default=False
+            )
+            self.assertTrue(result)
+
+    def test_should_perform_tss_false(self):
+        processor = TCXProcessor()
+        with patch('src.main.questionary.confirm') as mock_confirm:
+            mock_confirm.return_value.ask.return_value = False
+            result = processor._should_perform_tss()
+            mock_confirm.assert_called_once_with(
+                "Do you want to generate an audio summary of the analysis?",
+                default=False
+            )
+            self.assertFalse(result)
+
 
 if __name__ == '__main__':
     unittest.main()
