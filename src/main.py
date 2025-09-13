@@ -176,7 +176,9 @@ class TCXProcessor:
                 raise ValueError("Invalid TCX file")
 
             if self._should_perform_ai_analysis():
-                self._perform_ai_analysis(tcx_data, self.sport)
+                ai_response = self._perform_ai_analysis(tcx_data, self.sport)
+            if self._should_perform_tss():
+                self._create_audio_summary(ai_response)
         else:
             raise ValueError(f"Unsupported sport: {self.sport}")
 
@@ -263,47 +265,46 @@ class TCXProcessor:
         )
         self.logger.info("AI analysis completed successfully")
         self.logger.info("AI response:\n%s", analysis_result)
-        
-        # Offer audio summary after analysis
-        self._create_audio_summary(analysis_result)
-        
         return analysis_result
 
-
-    def _create_audio_summary(self, analysis_text: str) -> None:
-        """Create an audio summary of the AI analysis using OpenAI TTS."""
-        # Ask user for confirmation
-        generate_audio = questionary.confirm(
+    def _should_perform_tss(self) -> bool:
+        """Ask user if they want to generate audio summary."""
+        return questionary.confirm(
             "Do you want to generate an audio summary of the analysis?",
             default=False
         ).ask()
-        
-        if not generate_audio:
-            return
-            
+
+    def _create_audio_summary(self, analysis_text: str) -> None:
+        """Create an audio summary of the AI analysis using OpenAI TTS."""
         self.logger.info("Generating audio summary using OpenAI TTS...")
         try:
             api_key = os.getenv("OPENAI_API_KEY")
             if not api_key:
-                self.logger.error("OpenAI API key not found. Aborting audio summary generation.")
+                self.logger.error(
+                    "OpenAI API key not found. Aborting audio summary generation.")
                 return
 
             client = openai.OpenAI(api_key=api_key)
+            download_folder = Path.home() / "Downloads"
+            download_folder.mkdir(parents=True, exist_ok=True)
             timestamp = int(time.time())
-            audio_filename = f"training_analysis_summary_{timestamp}.mp3"
+            audio_filename = download_folder / \
+                f"training_analysis_summary_{timestamp}.mp3"
 
             clean_text = self._clean_text_for_speech(analysis_text)
             if not clean_text:
-                self.logger.warning("Analysis text is empty after cleaning. No audio will be generated.")
+                self.logger.warning(
+                    "Analysis text is empty after cleaning. No audio will be generated.")
                 return
 
             response = client.audio.speech.create(
-                model="tts-1",
+                model="gpt-4o-mini-tts",
                 voice="alloy",
                 input=clean_text,
-                speed=0.9
+                speed=1.1,
+                response_format="mp3"
             )
-            response.stream_to_file(audio_filename)
+            response.stream_to_file(str(audio_filename), chunk_size=1024)
             self.logger.info("Audio summary saved as: %s", audio_filename)
 
         except Exception as err:
@@ -324,13 +325,7 @@ class TCXProcessor:
         text = re.sub(r'\n+', '. ', text)
         text = re.sub(r'\s+', ' ', text)
 
-        text = text.strip()
-        
-        # Limit text to 1000 characters for reasonable audio duration
-        if len(text) > 1000:
-            text = text[:1000] + "..."
-            
-        return text
+        return text.strip()
 
     def _ensure_openai_key(self) -> None:
         """Ensure OpenAI API key is available."""
