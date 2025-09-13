@@ -1,6 +1,7 @@
 # pylint: disable=protected-access
 import unittest
 
+from pathlib import Path
 from unittest.mock import patch
 
 import numpy as np
@@ -901,14 +902,12 @@ class TestMain(unittest.TestCase):
     def test_create_audio_summary_user_accepts(self):
         processor = TCXProcessor()
 
-        with patch("src.main.questionary.confirm") as mock_confirm, \
-                patch("src.main.openai.OpenAI") as mock_openai_class, \
+        with patch("src.main.openai.OpenAI") as mock_openai_class, \
                 patch("src.main.time.time", return_value=1234567890), \
                 patch.dict("os.environ", {"OPENAI_API_KEY": "testkey"}), \
                 patch.object(processor, "_clean_text_for_speech", return_value="Clean text") as mock_clean, \
                 patch.object(processor.logger, "info") as mock_info:
 
-            mock_confirm.return_value.ask.return_value = True
             mock_client = unittest.mock.Mock()
             mock_response = unittest.mock.Mock()
             mock_client.audio.speech.create.return_value = mock_response
@@ -916,30 +915,38 @@ class TestMain(unittest.TestCase):
 
             processor._create_audio_summary("## Test Analysis\n**Bold text**")
 
-            mock_confirm.assert_called_once()
             mock_openai_class.assert_called_once()
             mock_clean.assert_called_once_with(
                 "## Test Analysis\n**Bold text**")
             mock_client.audio.speech.create.assert_called_once_with(
-                model="tts-1",
+                model="gpt-4o-mini-tts",
                 voice="alloy",
                 input="Clean text",
-                speed=0.9
+                speed=1.1,
+                response_format="mp3"
             )
+            download_folder = Path.home() / "Downloads"
+
             mock_response.stream_to_file.assert_called_once_with(
-                "training_analysis_summary_1234567890.mp3")
+                f"{download_folder}/training_analysis_summary_1234567890.mp3",
+                chunk_size=1024
+            )
 
             # Check log messages
             info_calls = mock_info.call_args_list
             self.assertTrue(
-                any("Generating audio summary using OpenAI TTS" in call.args[0] for call in info_calls))
+                any(
+                    "Generating audio summary using OpenAI TTS" in call.args[0] for call in info_calls)
+            )
 
             # Check for the file logging call
             file_log_found = False
             for call in info_calls:
                 if "Audio summary saved as:" in call.args[0] and len(call.args) > 1:
                     self.assertEqual(
-                        call.args[1], "training_analysis_summary_1234567890.mp3")
+                        str(call.args[1]),
+                        f"{download_folder}/training_analysis_summary_1234567890.mp3"
+                    )
                     file_log_found = True
                     break
             self.assertTrue(
@@ -1001,14 +1008,11 @@ newlines.
     def test_clean_text_for_speech_length_limit(self):
         processor = TCXProcessor()
 
-        # Create a long text (over 1000 characters)
         long_text = "A" * 1500
 
         result = processor._clean_text_for_speech(long_text)
 
-        # Should be limited to 1003 characters (1000 + "...")
-        self.assertEqual(len(result), 1003)
-        self.assertTrue(result.endswith("..."))
+        self.assertEqual(len(result), 1500)
 
 
 if __name__ == '__main__':
