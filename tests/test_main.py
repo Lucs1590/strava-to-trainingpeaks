@@ -956,7 +956,7 @@ class TestMain(unittest.TestCase):
         processor = TCXProcessor()
 
         with patch("src.main.questionary.confirm") as mock_confirm, \
-                patch("src.main.openai.OpenAI", side_effect=Exception("OpenAI TTS Error")) as mock_openai_class, \
+                patch("src.main.openai.OpenAI", side_effect=Exception("OpenAI TTS Error")), \
                 patch.dict("os.environ", {"OPENAI_API_KEY": "testkey"}), \
                 patch.object(processor.logger, "warning") as mock_warning:
 
