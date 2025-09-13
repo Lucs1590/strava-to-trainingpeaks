@@ -493,10 +493,8 @@ class TestMain(unittest.TestCase):
         with patch.object(processor, "_ensure_openai_key") as mock_ensure_key, \
                 patch("src.main.questionary.text") as mock_text, \
                 patch.object(processor, "_analyze_with_llm", return_value="analysis result") as mock_analyze, \
-                patch.object(processor, "_create_audio_summary") as mock_audio, \
                 patch.object(processor.logger, "info") as mock_info:
 
-            # Mock questionary.text for training_plan and language
             mock_text.side_effect = [
                 unittest.mock.Mock(ask=unittest.mock.Mock(
                     return_value="Planned workout")),
@@ -509,8 +507,6 @@ class TestMain(unittest.TestCase):
             mock_ensure_key.assert_called_once()
             self.assertEqual(mock_text.call_count, 2)
             mock_analyze.assert_called_once()
-            mock_audio.assert_called_once_with("analysis result")
-            # Check that logger.info was called with expected messages
             info_calls = [call.args[0] for call in mock_info.call_args_list]
             self.assertTrue(
                 any("Performing AI analysis" in msg for msg in info_calls))
@@ -526,7 +522,6 @@ class TestMain(unittest.TestCase):
         with patch.object(processor, "_ensure_openai_key") as mock_ensure_key, \
                 patch("src.main.questionary.text") as mock_text, \
                 patch.object(processor, "_analyze_with_llm", return_value="result") as mock_analyze, \
-                patch.object(processor, "_create_audio_summary") as mock_audio, \
                 patch.object(processor.logger, "info") as mock_info:
 
             # Simulate user pressing enter for both questions (empty plan, default language)
@@ -541,7 +536,6 @@ class TestMain(unittest.TestCase):
             mock_ensure_key.assert_called_once()
             self.assertEqual(mock_text.call_count, 2)
             mock_analyze.assert_called_once()
-            mock_audio.assert_called_once_with("result")
             info_calls = [call.args[0] for call in mock_info.call_args_list]
             self.assertTrue(
                 any("Performing AI analysis" in msg for msg in info_calls))
