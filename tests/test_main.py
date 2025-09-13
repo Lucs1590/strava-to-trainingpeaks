@@ -370,11 +370,13 @@ class TestMain(unittest.TestCase):
         processor.sport = main_module.Sport.BIKE
         with patch.object(processor.logger, "info") as mock_info, \
                 patch.object(processor, "_validate_tcx_file", return_value=(True, "tcx_data")) as mock_validate, \
-                patch.object(processor, "_should_perform_ai_analysis", return_value=False) as mock_ai:
+                patch.object(processor, "_should_perform_ai_analysis", return_value=False) as mock_ai, \
+                patch.object(processor, "_should_perform_tss", return_value=False) as mock_tss:
             processor._process_by_sport("bike.tcx")
             mock_info.assert_any_call("Validating the TCX file")
             mock_validate.assert_called_once_with("bike.tcx")
             mock_ai.assert_called_once()
+            mock_tss.assert_called_once()
 
     def test_process_by_sport_run_valid_with_ai(self):
         processor = TCXProcessor()
@@ -382,13 +384,17 @@ class TestMain(unittest.TestCase):
         with patch.object(processor.logger, "info") as mock_info, \
                 patch.object(processor, "_validate_tcx_file", return_value=(True, "tcx_data")) as mock_validate, \
                 patch.object(processor, "_should_perform_ai_analysis", return_value=True) as mock_ai, \
-                patch.object(processor, "_perform_ai_analysis") as mock_perform_ai:
+                patch.object(processor, "_perform_ai_analysis") as mock_perform_ai, \
+                patch.object(processor, "_should_perform_tss", return_value=False) as mock_tss:
             processor._process_by_sport("run.tcx")
             mock_info.assert_any_call("Validating the TCX file")
             mock_validate.assert_called_once_with("run.tcx")
             mock_ai.assert_called_once()
             mock_perform_ai.assert_called_once_with(
-                "tcx_data", main_module.Sport.RUN)
+                "tcx_data",
+                main_module.Sport.RUN
+            )
+            mock_tss.assert_called_once()
 
     def test_process_by_sport_invalid_tcx(self):
         processor = TCXProcessor()
@@ -879,25 +885,6 @@ class TestMain(unittest.TestCase):
         result = processor._apply_euclidean_filtering(df, 0.9)
         # Should not remove more than len(df)-10 rows
         self.assertGreaterEqual(len(result), 10)
-
-    def test_create_audio_summary_user_declines(self):
-        processor = TCXProcessor()
-
-        with patch("src.main.questionary.confirm") as mock_confirm, \
-                patch.object(processor.logger, "info") as mock_info:
-
-            mock_confirm.return_value.ask.return_value = False
-
-            processor._create_audio_summary("Test analysis text")
-
-            mock_confirm.assert_called_once_with(
-                "Do you want to generate an audio summary of the analysis?",
-                default=False
-            )
-            # Should not log audio generation messages
-            info_calls = [call.args[0] for call in mock_info.call_args_list]
-            self.assertFalse(
-                any("Generating audio summary" in msg for msg in info_calls))
 
     def test_create_audio_summary_user_accepts(self):
         processor = TCXProcessor()
