@@ -396,6 +396,27 @@ class TestMain(unittest.TestCase):
             )
             mock_tss.assert_called_once()
 
+    def test_process_by_sport_run_valid_with_ai_and_tss(self):
+        processor = TCXProcessor()
+        processor.sport = main_module.Sport.RUN
+        with patch.object(processor.logger, "info") as mock_info, \
+                patch.object(processor, "_validate_tcx_file", return_value=(True, "tcx_data")) as mock_validate, \
+                patch.object(processor, "_should_perform_ai_analysis", return_value=True) as mock_ai, \
+                patch.object(processor, "_perform_ai_analysis") as mock_perform_ai, \
+                patch.object(processor, "_should_perform_tss", return_value=True) as mock_tss, \
+                patch.object(processor, "_create_audio_summary", return_value=None) as mock_audio:
+            processor._process_by_sport("run.tcx")
+            mock_info.assert_any_call("Validating the TCX file")
+            mock_validate.assert_called_once_with("run.tcx")
+            mock_ai.assert_called_once()
+            mock_perform_ai.assert_called_once_with(
+                "tcx_data",
+                main_module.Sport.RUN
+            )
+            mock_tss.assert_called_once()
+            mock_audio.assert_called_once_with(mock_perform_ai.return_value)
+            self.assertIsNone(processor._create_audio_summary("  "))
+
     def test_process_by_sport_invalid_tcx(self):
         processor = TCXProcessor()
         processor.sport = main_module.Sport.BIKE
