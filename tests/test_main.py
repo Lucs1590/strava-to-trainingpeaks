@@ -904,6 +904,7 @@ class TestMain(unittest.TestCase):
         with patch("src.main.questionary.confirm") as mock_confirm, \
                 patch("src.main.openai.OpenAI") as mock_openai_class, \
                 patch("src.main.time.time", return_value=1234567890), \
+                patch.dict("os.environ", {"OPENAI_API_KEY": "testkey"}), \
                 patch.object(processor, "_clean_text_for_speech", return_value="Clean text") as mock_clean, \
                 patch.object(processor.logger, "info") as mock_info:
 
@@ -949,6 +950,7 @@ class TestMain(unittest.TestCase):
 
         with patch("src.main.questionary.confirm") as mock_confirm, \
                 patch("src.main.openai.OpenAI", side_effect=Exception("OpenAI TTS Error")) as mock_openai_class, \
+                patch.dict("os.environ", {"OPENAI_API_KEY": "testkey"}), \
                 patch.object(processor.logger, "warning") as mock_warning:
 
             mock_confirm.return_value.ask.return_value = True
