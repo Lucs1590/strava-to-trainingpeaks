@@ -281,7 +281,8 @@ class TCXProcessor:
             api_key = os.getenv("OPENAI_API_KEY")
             if not api_key:
                 self.logger.error(
-                    "OpenAI API key not found. Aborting audio summary generation.")
+                    "OpenAI API key not found. Aborting audio summary generation."
+                )
                 return
 
             client = openai.OpenAI(api_key=api_key)
@@ -294,7 +295,8 @@ class TCXProcessor:
             clean_text = self._clean_text_for_speech(analysis_text)
             if not clean_text:
                 self.logger.warning(
-                    "Analysis text is empty after cleaning. No audio will be generated.")
+                    "Analysis text is empty after cleaning. No audio will be generated."
+                )
                 return
 
             response = client.audio.speech.create(

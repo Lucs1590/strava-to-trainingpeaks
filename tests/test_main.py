@@ -913,14 +913,12 @@ class TestMain(unittest.TestCase):
                 chunk_size=1024
             )
 
-            # Check log messages
             info_calls = mock_info.call_args_list
             self.assertTrue(
                 any(
                     "Generating audio summary using OpenAI TTS" in call.args[0] for call in info_calls)
             )
 
-            # Check for the file logging call
             file_log_found = False
             for call in info_calls:
                 if "Audio summary saved as:" in call.args[0] and len(call.args) > 1:
@@ -947,6 +945,38 @@ class TestMain(unittest.TestCase):
 
             mock_warning.assert_called_once_with(
                 "Failed to generate audio summary: %s", "OpenAI TTS Error")
+
+    def test_create_audio_summary_empty_text(self):
+        processor = TCXProcessor()
+
+        with patch("src.main.questionary.confirm") as mock_confirm, \
+                patch.object(processor.logger, "info") as mock_info, \
+                patch.object(processor.logger, "warning") as mock_warning:
+
+            mock_confirm.return_value.ask.return_value = True
+
+            processor._create_audio_summary("   ")
+
+            mock_info.assert_called_once_with(
+                "Generating audio summary using OpenAI TTS..."
+            )
+            mock_warning.assert_called_once_with(
+                "Analysis text is empty after cleaning. No audio will be generated."
+            )
+            self.assertIsNone(processor._create_audio_summary("   "))
+
+    def test_create_audio_summary_empty_openai_key(self):
+        processor = TCXProcessor()
+
+        with patch("src.main.questionary.confirm") as mock_confirm, \
+                patch.dict("os.environ", {}, clear=True), \
+                patch.object(processor.logger, "error") as mock_error:
+            mock_confirm.return_value.ask.return_value = True
+            processor._create_audio_summary("Test text")
+            mock_error.assert_called_once_with(
+                "OpenAI API key not found. Aborting audio summary generation."
+            )
+            self.assertIsNone(processor._create_audio_summary("Test text"))
 
     def test_clean_text_for_speech(self):
         processor = TCXProcessor()
