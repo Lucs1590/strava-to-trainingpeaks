@@ -976,7 +976,7 @@ class TestMain(unittest.TestCase):
 
             mock_confirm.return_value.ask.return_value = True
 
-            processor._create_audio_summary("   ")
+            processor._create_audio_summary(" ")
 
             mock_info.assert_called_once_with(
                 "Generating audio summary using OpenAI TTS..."
