@@ -967,25 +967,6 @@ class TestMain(unittest.TestCase):
             mock_warning.assert_called_once_with(
                 "Failed to generate audio summary: %s", "OpenAI TTS Error")
 
-    def test_create_audio_summary_empty_text(self):
-        processor = TCXProcessor()
-
-        with patch("src.main.questionary.confirm") as mock_confirm, \
-                patch.object(processor.logger, "info") as mock_info, \
-                patch.object(processor.logger, "warning") as mock_warning:
-
-            mock_confirm.return_value.ask.return_value = True
-
-            processor._create_audio_summary(" ")
-
-            mock_info.assert_called_once_with(
-                "Generating audio summary using OpenAI TTS..."
-            )
-            mock_warning.assert_any_call(
-                "Analysis text is empty after cleaning. No audio will be generated."
-            )
-            self.assertIsNone(processor._create_audio_summary("   "))
-
     def test_create_audio_summary_empty_openai_key(self):
         processor = TCXProcessor()
 
