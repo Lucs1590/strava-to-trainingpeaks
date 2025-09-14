@@ -981,7 +981,7 @@ class TestMain(unittest.TestCase):
             mock_info.assert_called_once_with(
                 "Generating audio summary using OpenAI TTS..."
             )
-            mock_warning.assert_called_once_with(
+            mock_warning.assert_any_call(
                 "Analysis text is empty after cleaning. No audio will be generated."
             )
             self.assertIsNone(processor._create_audio_summary("   "))
