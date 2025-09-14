@@ -1,6 +1,7 @@
 # pylint: disable=protected-access
 import unittest
 
+from pathlib import Path
 from unittest.mock import patch
 
 import numpy as np
@@ -369,11 +370,13 @@ class TestMain(unittest.TestCase):
         processor.sport = main_module.Sport.BIKE
         with patch.object(processor.logger, "info") as mock_info, \
                 patch.object(processor, "_validate_tcx_file", return_value=(True, "tcx_data")) as mock_validate, \
-                patch.object(processor, "_should_perform_ai_analysis", return_value=False) as mock_ai:
+                patch.object(processor, "_should_perform_ai_analysis", return_value=False) as mock_ai, \
+                patch.object(processor, "_should_perform_tss", return_value=False) as mock_tss:
             processor._process_by_sport("bike.tcx")
             mock_info.assert_any_call("Validating the TCX file")
             mock_validate.assert_called_once_with("bike.tcx")
             mock_ai.assert_called_once()
+            mock_tss.assert_called_once()
 
     def test_process_by_sport_run_valid_with_ai(self):
         processor = TCXProcessor()
@@ -381,13 +384,38 @@ class TestMain(unittest.TestCase):
         with patch.object(processor.logger, "info") as mock_info, \
                 patch.object(processor, "_validate_tcx_file", return_value=(True, "tcx_data")) as mock_validate, \
                 patch.object(processor, "_should_perform_ai_analysis", return_value=True) as mock_ai, \
-                patch.object(processor, "_perform_ai_analysis") as mock_perform_ai:
+                patch.object(processor, "_perform_ai_analysis") as mock_perform_ai, \
+                patch.object(processor, "_should_perform_tss", return_value=False) as mock_tss:
             processor._process_by_sport("run.tcx")
             mock_info.assert_any_call("Validating the TCX file")
             mock_validate.assert_called_once_with("run.tcx")
             mock_ai.assert_called_once()
             mock_perform_ai.assert_called_once_with(
-                "tcx_data", main_module.Sport.RUN)
+                "tcx_data",
+                main_module.Sport.RUN
+            )
+            mock_tss.assert_called_once()
+
+    def test_process_by_sport_run_valid_with_ai_and_tss(self):
+        processor = TCXProcessor()
+        processor.sport = main_module.Sport.RUN
+        with patch.object(processor.logger, "info") as mock_info, \
+                patch.object(processor, "_validate_tcx_file", return_value=(True, "tcx_data")) as mock_validate, \
+                patch.object(processor, "_should_perform_ai_analysis", return_value=True) as mock_ai, \
+                patch.object(processor, "_perform_ai_analysis") as mock_perform_ai, \
+                patch.object(processor, "_should_perform_tss", return_value=True) as mock_tss, \
+                patch.object(processor, "_create_audio_summary", return_value=None) as mock_audio:
+            processor._process_by_sport("run.tcx")
+            mock_info.assert_any_call("Validating the TCX file")
+            mock_validate.assert_called_once_with("run.tcx")
+            mock_ai.assert_called_once()
+            mock_perform_ai.assert_called_once_with(
+                "tcx_data",
+                main_module.Sport.RUN
+            )
+            mock_tss.assert_called_once()
+            mock_audio.assert_called_once_with(mock_perform_ai.return_value)
+            self.assertIsNone(processor._create_audio_summary("  "))
 
     def test_process_by_sport_invalid_tcx(self):
         processor = TCXProcessor()
@@ -488,7 +516,6 @@ class TestMain(unittest.TestCase):
                 patch.object(processor, "_analyze_with_llm", return_value="analysis result") as mock_analyze, \
                 patch.object(processor.logger, "info") as mock_info:
 
-            # Mock questionary.text for training_plan and language
             mock_text.side_effect = [
                 unittest.mock.Mock(ask=unittest.mock.Mock(
                     return_value="Planned workout")),
@@ -501,7 +528,6 @@ class TestMain(unittest.TestCase):
             mock_ensure_key.assert_called_once()
             self.assertEqual(mock_text.call_count, 2)
             mock_analyze.assert_called_once()
-            # Check that logger.info was called with expected messages
             info_calls = [call.args[0] for call in mock_info.call_args_list]
             self.assertTrue(
                 any("Performing AI analysis" in msg for msg in info_calls))
@@ -874,6 +900,154 @@ class TestMain(unittest.TestCase):
         result = processor._apply_euclidean_filtering(df, 0.9)
         # Should not remove more than len(df)-10 rows
         self.assertGreaterEqual(len(result), 10)
+
+    def test_create_audio_summary_user_accepts(self):
+        processor = TCXProcessor()
+
+        with patch("src.main.openai.OpenAI") as mock_openai_class, \
+                patch("src.main.time.time", return_value=1234567890), \
+                patch.dict("os.environ", {"OPENAI_API_KEY": "testkey"}), \
+                patch.object(processor, "_clean_text_for_speech", return_value="Clean text") as mock_clean, \
+                patch.object(processor.logger, "info") as mock_info:
+
+            mock_client = unittest.mock.Mock()
+            mock_response = unittest.mock.Mock()
+            mock_client.audio.speech.create.return_value = mock_response
+            mock_openai_class.return_value = mock_client
+
+            processor._create_audio_summary("## Test Analysis\n**Bold text**")
+
+            mock_openai_class.assert_called_once()
+            mock_clean.assert_called_once_with(
+                "## Test Analysis\n**Bold text**")
+            mock_client.audio.speech.create.assert_called_once_with(
+                model="gpt-4o-mini-tts",
+                voice="alloy",
+                input="Clean text",
+                speed=1.1,
+                response_format="mp3"
+            )
+            download_folder = Path.home() / "Downloads"
+
+            mock_response.stream_to_file.assert_called_once_with(
+                f"{download_folder}/training_analysis_summary_1234567890.mp3",
+                chunk_size=1024
+            )
+
+            info_calls = mock_info.call_args_list
+            self.assertTrue(
+                any(
+                    "Generating audio summary using OpenAI TTS" in call.args[0] for call in info_calls)
+            )
+
+            file_log_found = False
+            for call in info_calls:
+                if "Audio summary saved as:" in call.args[0] and len(call.args) > 1:
+                    self.assertEqual(
+                        str(call.args[1]),
+                        f"{download_folder}/training_analysis_summary_1234567890.mp3"
+                    )
+                    file_log_found = True
+                    break
+            self.assertTrue(
+                file_log_found, "Expected file logging call not found")
+
+    def test_create_audio_summary_exception_handling(self):
+        processor = TCXProcessor()
+
+        with patch("src.main.questionary.confirm") as mock_confirm, \
+                patch("src.main.openai.OpenAI", side_effect=Exception("OpenAI TTS Error")), \
+                patch.dict("os.environ", {"OPENAI_API_KEY": "testkey"}), \
+                patch.object(processor.logger, "warning") as mock_warning:
+
+            mock_confirm.return_value.ask.return_value = True
+
+            processor._create_audio_summary("Test text")
+
+            mock_warning.assert_called_once_with(
+                "Failed to generate audio summary: %s", "OpenAI TTS Error")
+
+    def test_create_audio_summary_empty_openai_key(self):
+        processor = TCXProcessor()
+
+        with patch("src.main.questionary.confirm") as mock_confirm, \
+                patch.dict("os.environ", {}, clear=True), \
+                patch.object(processor.logger, "error") as mock_error:
+            mock_confirm.return_value.ask.return_value = True
+            processor._create_audio_summary("Test text")
+            mock_error.assert_called_once_with(
+                "OpenAI API key not found. Aborting audio summary generation."
+            )
+            self.assertIsNone(processor._create_audio_summary("Test text"))
+
+    def test_clean_text_for_speech(self):
+        processor = TCXProcessor()
+
+        # Test markdown cleanup
+        input_text = """
+# Session Overview
+        
+- Summarize key characteristics
+- **Pace/Speed:** Include averages
+- *Heart Rate*: Show distribution
+        
+## Performance Metrics
+        
+- Test item 1
+* Test item 2
+        
+Multiple    spaces    and
+
+
+newlines.
+        """
+
+        result = processor._clean_text_for_speech(input_text)
+
+        # Check that markdown formatting is removed
+        self.assertNotIn('#', result)
+        self.assertNotIn('**', result)
+        self.assertNotIn('*', result)
+        self.assertNotIn('-', result)
+
+        # Check that text is properly spaced
+        self.assertNotIn('  ', result)  # No double spaces
+        self.assertNotIn('\n', result)  # No newlines
+
+        # Check basic content is preserved
+        self.assertIn('Session Overview', result)
+        self.assertIn('Performance Metrics', result)
+
+    def test_clean_text_for_speech_length_limit(self):
+        processor = TCXProcessor()
+
+        long_text = "A" * 1500
+
+        result = processor._clean_text_for_speech(long_text)
+
+        self.assertEqual(len(result), 1500)
+
+    def test_should_perform_tss_true(self):
+        processor = TCXProcessor()
+        with patch('src.main.questionary.confirm') as mock_confirm:
+            mock_confirm.return_value.ask.return_value = True
+            result = processor._should_perform_tss()
+            mock_confirm.assert_called_once_with(
+                "Do you want to generate an audio summary of the analysis?",
+                default=False
+            )
+            self.assertTrue(result)
+
+    def test_should_perform_tss_false(self):
+        processor = TCXProcessor()
+        with patch('src.main.questionary.confirm') as mock_confirm:
+            mock_confirm.return_value.ask.return_value = False
+            result = processor._should_perform_tss()
+            mock_confirm.assert_called_once_with(
+                "Do you want to generate an audio summary of the analysis?",
+                default=False
+            )
+            self.assertFalse(result)
 
 
 if __name__ == '__main__':

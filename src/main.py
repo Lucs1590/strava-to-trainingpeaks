@@ -11,6 +11,7 @@ from typing import Optional, Tuple
 
 import numpy as np
 import pandas as pd
+import openai
 import questionary
 
 from tqdm import tqdm
@@ -171,10 +172,13 @@ class TCXProcessor:
             is_valid, tcx_data = self._validate_tcx_file(file_path)
 
             if not is_valid:
+                self.logger.error("Invalid TCX file")
                 raise ValueError("Invalid TCX file")
 
             if self._should_perform_ai_analysis():
-                self._perform_ai_analysis(tcx_data, self.sport)
+                ai_response = self._perform_ai_analysis(tcx_data, self.sport)
+            if self._should_perform_tss():
+                self._create_audio_summary(ai_response)
         else:
             raise ValueError(f"Unsupported sport: {self.sport}")
 
@@ -239,7 +243,7 @@ class TCXProcessor:
             default=False
         ).ask()
 
-    def _perform_ai_analysis(self, tcx_data: TCXReader, sport: Sport) -> None:
+    def _perform_ai_analysis(self, tcx_data: TCXReader, sport: Sport) -> str:
         """Perform AI analysis on TCX data."""
         self._ensure_openai_key()
 
@@ -261,6 +265,69 @@ class TCXProcessor:
         )
         self.logger.info("AI analysis completed successfully")
         self.logger.info("AI response:\n%s", analysis_result)
+        return analysis_result
+
+    def _should_perform_tss(self) -> bool:
+        """Ask user if they want to generate audio summary."""
+        return questionary.confirm(
+            "Do you want to generate an audio summary of the analysis?",
+            default=False
+        ).ask()
+
+    def _create_audio_summary(self, analysis_text: str) -> None:
+        """Create an audio summary of the AI analysis using OpenAI TTS."""
+        self.logger.info("Generating audio summary using OpenAI TTS...")
+        try:
+            api_key = os.getenv("OPENAI_API_KEY")
+            if not api_key:
+                self.logger.error(
+                    "OpenAI API key not found. Aborting audio summary generation."
+                )
+                return
+
+            client = openai.OpenAI(api_key=api_key)
+            download_folder = Path.home() / "Downloads"
+            download_folder.mkdir(parents=True, exist_ok=True)
+            timestamp = int(time.time())
+            audio_filename = download_folder / \
+                f"training_analysis_summary_{timestamp}.mp3"
+
+            clean_text = self._clean_text_for_speech(analysis_text)
+            if not clean_text:
+                self.logger.warning(
+                    "Analysis text is empty after cleaning. No audio will be generated."
+                )
+                return
+
+            response = client.audio.speech.create(
+                model="gpt-4o-mini-tts",
+                voice="alloy",
+                input=clean_text,
+                speed=1.1,
+                response_format="mp3"
+            )
+            response.stream_to_file(str(audio_filename), chunk_size=1024)
+            self.logger.info("Audio summary saved as: %s", audio_filename)
+
+        except Exception as err:
+            self.logger.warning(
+                "Failed to generate audio summary: %s",
+                str(err)
+            )
+
+    def _clean_text_for_speech(self, text: str) -> str:
+        """Clean markdown formatting and prepare text for speech synthesis."""
+        text = re.sub(r'^#+\s*', '', text, flags=re.MULTILINE)
+
+        text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)
+        text = re.sub(r'\*([^*]+)\*', r'\1', text)
+
+        text = re.sub(r'^[-*]\s*', '', text, flags=re.MULTILINE)
+
+        text = re.sub(r'\n+', '. ', text)
+        text = re.sub(r'\s+', ' ', text)
+
+        return text.strip()
 
     def _ensure_openai_key(self) -> None:
         """Ensure OpenAI API key is available."""
