@@ -29,7 +29,7 @@ class Sport(Enum):
     RUN = "Run"
     SWIM = "Swim"
     OTHER = "Other"
-    
+
     @classmethod
     def from_strava_type(cls, strava_type: str) -> 'Sport':
         """Convert Strava activity type to Sport enum."""
@@ -352,12 +352,12 @@ class TCXProcessor:
 
     def convert_strava_to_tcx(self, activity_data: Dict[str, Any], streams: Dict[str, Any], sport: Sport) -> str:
         """Convert Strava activity data and streams to TCX format.
-        
+
         Args:
             activity_data: Strava activity data
             streams: Strava streams data
             sport: Sport type
-            
+
         Returns:
             TCX file content as string
         """
@@ -365,88 +365,97 @@ class TCXProcessor:
         # you would want to use a proper TCX library or template
         from xml.etree.ElementTree import Element, SubElement, tostring
         from xml.dom import minidom
-        
+
         # Create TCX root element
         tcx = Element("TrainingCenterDatabase")
         tcx.set("xmlns", "http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2")
-        
+
         activities = SubElement(tcx, "Activities")
         activity = SubElement(activities, "Activity")
         activity.set("Sport", sport.value)
-        
+
         # Activity metadata
         SubElement(activity, "Id").text = activity_data.get("start_date", "")
-        
+
         lap = SubElement(activity, "Lap")
         lap.set("StartTime", activity_data.get("start_date", ""))
-        
+
         # Lap summary
-        SubElement(lap, "TotalTimeSeconds").text = str(activity_data.get("moving_time", 0))
-        SubElement(lap, "DistanceMeters").text = str(activity_data.get("distance", 0))
-        
+        SubElement(lap, "TotalTimeSeconds").text = str(
+            activity_data.get("moving_time", 0))
+        SubElement(lap, "DistanceMeters").text = str(
+            activity_data.get("distance", 0))
+
         if activity_data.get("average_speed"):
-            SubElement(lap, "MaximumSpeed").text = str(activity_data["average_speed"])
-        
+            SubElement(lap, "MaximumSpeed").text = str(
+                activity_data["average_speed"])
+
         # Add trackpoints if streams are available
         if streams:
             track = SubElement(lap, "Track")
             self._add_trackpoints_to_tcx(track, streams)
-        
+
         # Convert to string with proper formatting
         rough_string = tostring(tcx, 'unicode')
         reparsed = minidom.parseString(rough_string)
         return reparsed.toprettyxml(indent="  ")
-    
+
     def _add_trackpoints_to_tcx(self, track_element, streams: Dict[str, Any]):
         """Add trackpoints from streams to TCX track element."""
         from xml.etree.ElementTree import SubElement
-        
+
         # Get stream data
         time_stream = streams.get("time", {}).get("data", [])
         distance_stream = streams.get("distance", {}).get("data", [])
         latlng_stream = streams.get("latlng", {}).get("data", [])
         altitude_stream = streams.get("altitude", {}).get("data", [])
         heartrate_stream = streams.get("heartrate", {}).get("data", [])
-        
+
         # Create trackpoints
-        max_length = max(len(stream) for stream in [time_stream, distance_stream] if stream) if any([time_stream, distance_stream]) else 0
-        
+        max_length = max(len(stream) for stream in [time_stream, distance_stream] if stream) if any(
+            [time_stream, distance_stream]) else 0
+
         for i in range(min(max_length, 1000)):  # Limit to 1000 points for performance
             trackpoint = SubElement(track_element, "Trackpoint")
-            
+
             # Time (required)
             if i < len(time_stream):
                 time_elem = SubElement(trackpoint, "Time")
                 # Convert seconds to ISO format (simplified)
                 import datetime
                 time_elem.text = datetime.datetime.now().isoformat() + "Z"
-            
+
             # Distance
             if i < len(distance_stream):
-                SubElement(trackpoint, "DistanceMeters").text = str(distance_stream[i])
-            
+                SubElement(trackpoint, "DistanceMeters").text = str(
+                    distance_stream[i])
+
             # Position
             if i < len(latlng_stream) and len(latlng_stream[i]) >= 2:
                 position = SubElement(trackpoint, "Position")
-                SubElement(position, "LatitudeDegrees").text = str(latlng_stream[i][0])
-                SubElement(position, "LongitudeDegrees").text = str(latlng_stream[i][1])
-            
+                SubElement(position, "LatitudeDegrees").text = str(
+                    latlng_stream[i][0])
+                SubElement(position, "LongitudeDegrees").text = str(
+                    latlng_stream[i][1])
+
             # Altitude
             if i < len(altitude_stream):
-                SubElement(trackpoint, "AltitudeMeters").text = str(altitude_stream[i])
-            
+                SubElement(trackpoint, "AltitudeMeters").text = str(
+                    altitude_stream[i])
+
             # Heart rate
             if i < len(heartrate_stream):
                 hr_elem = SubElement(trackpoint, "HeartRateBpm")
-                SubElement(hr_elem, "Value").text = str(int(heartrate_stream[i]))
+                SubElement(hr_elem, "Value").text = str(
+                    int(heartrate_stream[i]))
 
     async def analyze_activity_data(self, activity_data: Dict[str, Any], config: AnalysisConfig) -> str:
         """Analyze activity data using LLM.
-        
+
         Args:
             activity_data: Activity data to analyze
             config: Analysis configuration
-            
+
         Returns:
             Analysis result as string
         """
@@ -461,40 +470,42 @@ Duration: {activity_data.get('moving_time', 0) // 60} minutes
 Average Speed: {activity_data.get('average_speed', 0) * 3.6:.2f} km/h
 
 """
-        
+
         if activity_data.get('average_heartrate'):
             analysis_text += f"Average Heart Rate: {activity_data['average_heartrate']} bpm\n"
-        
+
         if activity_data.get('average_watts'):
             analysis_text += f"Average Power: {activity_data['average_watts']} watts\n"
-        
+
         analysis_text += f"\nDescription: {activity_data.get('description', 'No description')}\n"
-        
+
         # Use the existing LLM analysis from the original implementation
         try:
-            prompt_template = self._get_analysis_prompt_template(bool(config.training_plan))
-            
+            prompt_template = self._get_analysis_prompt_template(
+                bool(config.training_plan))
+
             from langchain_core.prompts.prompt import PromptTemplate
             prompt = PromptTemplate.from_template(prompt_template).format(
-                sport=config.sport.value if hasattr(config, 'sport') else "Unknown",
+                sport=config.sport.value if hasattr(
+                    config, 'sport') else "Unknown",
                 training_data=analysis_text,
                 language=config.language,
                 plan=getattr(config, 'training_plan', '')
             )
-            
+
             from langchain_openai import ChatOpenAI
             import os
-            
+
             llm = ChatOpenAI(
                 openai_api_key=os.getenv("OPENAI_API_KEY"),
                 model="gpt-4o-mini",
                 max_retries=3,
                 timeout=60
             )
-            
+
             response = llm.invoke(prompt)
             return response.content
-            
+
         except Exception as e:
             self.logger.error(f"Analysis failed: {str(e)}")
             return f"Analysis failed: {str(e)}"
