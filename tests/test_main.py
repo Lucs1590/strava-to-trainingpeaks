@@ -1,5 +1,4 @@
 # pylint: disable=protected-access
-import os
 import unittest
 
 from pathlib import Path
@@ -156,7 +155,8 @@ class TestMain(unittest.TestCase):
             with self.assertRaises(Exception) as context:
                 processor.run()
             self.assertIn(
-                "An error occurred during processing", str(context.exception))
+                "An error occurred during processing", str(context.exception)
+            )
             mock_error.assert_any_call("Process failed: %s", "fail")
 
     def test_tcx_processor_get_sport_selection(self):

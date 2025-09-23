@@ -147,7 +147,7 @@ class TCXProcessor:
 
         try:
             webbrowser.open(url)
-        except Exception as err:
+        except Exception:
             self.logger.error("Failed to download the TCX file from Strava")
 
             # Provide specific guidance for common issues
