@@ -145,6 +145,17 @@ class TCXProcessor:
 
         return clean_id
 
+    def _is_wsl_environment(self) -> bool:
+        """Check if running in WSL environment."""
+        try:
+            # Check for WSL-specific file
+            if os.path.exists('/proc/version'):
+                with open('/proc/version', 'r', encoding='utf-8') as f:
+                    return 'microsoft' in f.read().lower()
+            return False
+        except Exception:
+            return False
+
     def _download_tcx_file(self, activity_id: str) -> None:
         """Download TCX file from Strava."""
         export_type = 'original' if self.sport in [
@@ -153,9 +164,17 @@ class TCXProcessor:
 
         try:
             webbrowser.open(url)
-        except Exception as err:
+        except Exception:
             self.logger.error("Failed to download the TCX file from Strava")
-            raise ValueError("Error opening the browser") from err
+
+            # Provide specific guidance for common issues
+            if self._is_wsl_environment():
+                self.logger.warning(
+                    "Browser opening failed - this is common in WSL. "
+                    "Please manually navigate to: %s", url
+                )
+
+            return
 
     def _get_latest_download(self) -> str:
         """Get the latest TCX file from Downloads folder."""

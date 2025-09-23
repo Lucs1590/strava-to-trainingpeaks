@@ -155,7 +155,8 @@ class TestMain(unittest.TestCase):
             with self.assertRaises(Exception) as context:
                 processor.run()
             self.assertIn(
-                "An error occurred during processing", str(context.exception))
+                "An error occurred during processing", str(context.exception)
+            )
             mock_error.assert_any_call("Process failed: %s", "fail")
 
     def test_tcx_processor_get_sport_selection(self):
@@ -275,12 +276,51 @@ class TestMain(unittest.TestCase):
         processor = TCXProcessor()
         processor.sport = main_module.Sport.BIKE
         with patch("src.main.webbrowser.open", side_effect=Exception("browser fail")), \
-                patch.object(processor.logger, "error") as mock_error:
-            with self.assertRaises(ValueError) as context:
-                processor._download_tcx_file("123456")
-            self.assertIn("Error opening the browser", str(context.exception))
+                patch.object(processor.logger, "error") as mock_error, \
+                patch.object(processor.logger, "warning") as mock_warning, \
+                patch.object(processor, '_is_wsl_environment', return_value=False):
+            # Should not raise an exception anymore - gracefully handles the error
+            processor._download_tcx_file("123456")
             mock_error.assert_called_with(
                 "Failed to download the TCX file from Strava")
+            # Should not log a warning in non-WSL environment
+            mock_warning.assert_not_called()
+
+    def test_is_wsl_environment(self):
+        processor = TCXProcessor()
+        # Test with mock WSL environment
+        with patch('os.path.exists', return_value=True), \
+                patch('builtins.open', unittest.mock.mock_open(read_data='Linux version 4.4.0-22621-Microsoft')):
+            self.assertTrue(processor._is_wsl_environment())
+
+        # Test with non-WSL environment
+        with patch('os.path.exists', return_value=True), \
+                patch('builtins.open', unittest.mock.mock_open(read_data='Linux version 5.15.0-generic')):
+            self.assertFalse(processor._is_wsl_environment())
+
+        # Test with no /proc/version file
+        with patch('os.path.exists', return_value=False):
+            self.assertFalse(processor._is_wsl_environment())
+
+    def test_tcx_processor_download_tcx_file_exception_wsl(self):
+        """Test specific error handling for WSL environment."""
+        processor = TCXProcessor()
+        processor.sport = main_module.Sport.BIKE
+        with patch("src.main.webbrowser.open", side_effect=Exception("browser fail")), \
+                patch.object(processor.logger, "error") as mock_error, \
+                patch.object(processor.logger, "warning") as mock_warning, \
+                patch.object(processor, '_is_wsl_environment', return_value=True):
+
+            processor._download_tcx_file("123456")
+
+            mock_error.assert_called_with(
+                "Failed to download the TCX file from Strava")
+            # Should show WSL-specific warning message
+            mock_warning.assert_called_with(
+                "Browser opening failed - this is common in WSL. "
+                "Please manually navigate to: %s",
+                "https://www.strava.com/activities/123456/export_tcx"
+            )
 
     def test_tcx_processor_get_latest_download_with_files(self):
         processor = TCXProcessor()
