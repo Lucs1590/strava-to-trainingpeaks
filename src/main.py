@@ -135,10 +135,6 @@ class TCXProcessor:
         except Exception:
             return False
 
-    def _is_running_as_root(self) -> bool:
-        """Check if running as root user."""
-        return os.geteuid() == 0 if hasattr(os, 'geteuid') else False
-
     def _download_tcx_file(self, activity_id: str) -> None:
         """Download TCX file from Strava."""
         export_type = 'original' if self.sport in [
@@ -151,27 +147,10 @@ class TCXProcessor:
             self.logger.error("Failed to download the TCX file from Strava")
 
             # Provide specific guidance for common issues
-            if self._is_wsl_environment() and self._is_running_as_root():
+            if self._is_wsl_environment():
                 self.logger.warning(
-                    "Browser opening failed - this is common in WSL when running as root. "
+                    "Browser opening failed - this is common in WSL. "
                     "Please manually navigate to: %s", url
-                )
-                self.logger.info("Browser opening failed in WSL environment.")
-                self.logger.info(
-                    f"Please manually open this URL in your browser: {url}")
-                self.logger.info("The TCX file should download automatically.")
-                self.logger.info(
-                    "You'll be prompted to provide the file path after download."
-                )
-            else:
-                self.logger.warning(
-                    "Browser opening failed. Please manually navigate to: %s", url
-                )
-                self.logger.warning(
-                    "The TCX file should download automatically."
-                )
-                self.logger.warning(
-                    "You'll be prompted to provide the file path after download."
                 )
 
             return
