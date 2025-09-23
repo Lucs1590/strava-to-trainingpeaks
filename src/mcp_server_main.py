@@ -4,7 +4,6 @@ MCP Server for Strava Integration using official MCP package.
 Implements a Model Context Protocol server providing Strava activity synchronization and analysis tools.
 """
 
-from mcp_server import create_strava_mcp_server, StravaActivityMCP
 import asyncio
 import json
 import logging
@@ -15,6 +14,7 @@ from pathlib import Path
 # Add the src directory to Python path
 sys.path.insert(0, str(Path(__file__).parent))
 
+from mcp_server import create_strava_mcp_server, StravaActivityMCP
 
 async def run_stdio_server():
     """Run the MCP server using stdio transport."""
