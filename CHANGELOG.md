@@ -1,3 +1,23 @@
+## 1.3.0 (2025-09-22)
+
+### Feat
+
+- update ChatOpenAI with gpt-5-mini
+
+### Fix
+
+- update mock response structure and parameter name for ChatOpenAI model
+- changing to lower as pattern
+
+### Refactor
+
+- streamline AI analysis flow and audio summary generation in TCXProcessor
+- improve audio summary generation and error handling in TCXProcessor
+- enhance AI analysis flow and audio summary generation
+- simplify analysis prompt template for clarity and conciseness
+- changing output according to gpt-5
+- update analysis prompt template for clarity and structure
+
 ## 1.2.0 (2025-06-27)
 
 ### Feat
