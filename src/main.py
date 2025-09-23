@@ -124,6 +124,21 @@ class TCXProcessor:
 
         return clean_id
 
+    def _is_wsl_environment(self) -> bool:
+        """Check if running in WSL environment."""
+        try:
+            # Check for WSL-specific file
+            if os.path.exists('/proc/version'):
+                with open('/proc/version', 'r', encoding='utf-8') as f:
+                    return 'microsoft' in f.read().lower()
+            return False
+        except Exception:
+            return False
+
+    def _is_running_as_root(self) -> bool:
+        """Check if running as root user."""
+        return os.geteuid() == 0 if hasattr(os, 'geteuid') else False
+
     def _download_tcx_file(self, activity_id: str) -> None:
         """Download TCX file from Strava."""
         export_type = 'original' if self.sport in [
@@ -134,7 +149,28 @@ class TCXProcessor:
             webbrowser.open(url)
         except Exception as err:
             self.logger.error("Failed to download the TCX file from Strava")
-            raise ValueError("Error opening the browser") from err
+            
+            # Provide specific guidance for common issues
+            if self._is_wsl_environment() and self._is_running_as_root():
+                self.logger.warning(
+                    "Browser opening failed - this is common in WSL when running as root. "
+                    "Please manually navigate to: %s", url
+                )
+                print(f"\nBrowser opening failed in WSL environment.")
+                print(f"Please manually open this URL in your browser: {url}")
+                print("The TCX file should download automatically.")
+                print("You'll be prompted to provide the file path after download.")
+            else:
+                self.logger.warning(
+                    "Browser opening failed. Please manually navigate to: %s", url
+                )
+                print(f"\nBrowser opening failed.")
+                print(f"Please manually open this URL in your browser: {url}")
+                print("The TCX file should download automatically.")
+                print("You'll be prompted to provide the file path after download.")
+            
+            # Don't raise an exception - allow the process to continue
+            return
 
     def _get_latest_download(self) -> str:
         """Get the latest TCX file from Downloads folder."""
