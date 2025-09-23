@@ -149,7 +149,7 @@ class TCXProcessor:
             webbrowser.open(url)
         except Exception as err:
             self.logger.error("Failed to download the TCX file from Strava")
-            
+
             # Provide specific guidance for common issues
             if self._is_wsl_environment() and self._is_running_as_root():
                 self.logger.warning(
@@ -168,7 +168,7 @@ class TCXProcessor:
                 print(f"Please manually open this URL in your browser: {url}")
                 print("The TCX file should download automatically.")
                 print("You'll be prompted to provide the file path after download.")
-            
+
             # Don't raise an exception - allow the process to continue
             return
 
