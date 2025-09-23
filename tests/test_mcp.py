@@ -60,18 +60,18 @@ class TestStravaClient(unittest.TestCase):
     async def test_get_activities_success(self, mock_client):
         """Test successful activity retrieval."""
         self.client.access_token = "test_token"
-        
+
         # Mock the HTTP client
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = [
             {"id": 1, "name": "Test Activity", "type": "Run"}
         ]
-        
+
         mock_client_instance = AsyncMock()
         mock_client_instance.get.return_value = mock_response
         mock_client.return_value.__aenter__.return_value = mock_client_instance
-        
+
         activities = await self.client.get_activities(limit=1)
         self.assertEqual(len(activities), 1)
         self.assertEqual(activities[0]["name"], "Test Activity")
@@ -83,27 +83,28 @@ class TestStravaClient(unittest.TestCase):
         self.client.refresh_token = "refresh_token"
         self.client.client_id = "client_id"
         self.client.client_secret = "client_secret"
-        
+
         # Mock the HTTP client for failed and successful requests
         mock_response_fail = MagicMock()
         mock_response_fail.status_code = 401
-        
+
         mock_response_success = MagicMock()
         mock_response_success.status_code = 200
         mock_response_success.json.return_value = []
-        
+
         mock_refresh_response = MagicMock()
         mock_refresh_response.status_code = 200
         mock_refresh_response.json.return_value = {
             "access_token": "new_token",
             "refresh_token": "new_refresh"
         }
-        
+
         mock_client_instance = AsyncMock()
-        mock_client_instance.get.side_effect = [mock_response_fail, mock_response_success]
+        mock_client_instance.get.side_effect = [
+            mock_response_fail, mock_response_success]
         mock_client_instance.post.return_value = mock_refresh_response
         mock_client.return_value.__aenter__.return_value = mock_client_instance
-        
+
         with patch.object(self.client, '_update_env_tokens'):
             activities = await self.client.get_activities()
             self.assertEqual(len(activities), 0)
@@ -121,12 +122,12 @@ class TestStravaActivityMCP(unittest.TestCase):
         tools = self.mcp_server.get_available_tools()
         self.assertIsInstance(tools, list)
         self.assertGreater(len(tools), 0)
-        
+
         # Check that required tools are present
         tool_names = [tool["name"] for tool in tools]
         expected_tools = [
             "list_activities",
-            "get_activity_detail", 
+            "get_activity_detail",
             "analyze_activity",
             "sync_recent_activities",
             "get_authorization_url",
@@ -139,9 +140,9 @@ class TestStravaActivityMCP(unittest.TestCase):
     async def test_get_authorization_url_success(self, mock_get_auth_url):
         """Test successful authorization URL generation."""
         mock_get_auth_url.return_value = "https://strava.com/oauth/authorize?..."
-        
+
         result = await self.mcp_server.handle_tool_call("get_authorization_url", {})
-        
+
         self.assertTrue(result["success"])
         self.assertIn("authorization_url", result)
 
@@ -149,9 +150,9 @@ class TestStravaActivityMCP(unittest.TestCase):
     async def test_get_authorization_url_error(self, mock_get_auth_url):
         """Test authorization URL generation with error."""
         mock_get_auth_url.side_effect = StravaAPIError("No client ID")
-        
+
         result = await self.mcp_server.handle_tool_call("get_authorization_url", {})
-        
+
         self.assertIn("error", result)
 
     @patch.object(StravaClient, 'get_activities')
@@ -174,9 +175,9 @@ class TestStravaActivityMCP(unittest.TestCase):
             }
         ]
         mock_get_activities.return_value = mock_activities
-        
+
         result = await self.mcp_server.handle_tool_call("list_activities", {"limit": 1})
-        
+
         self.assertTrue(result["success"])
         self.assertEqual(result["count"], 1)
         self.assertEqual(len(result["activities"]), 1)
@@ -186,9 +187,9 @@ class TestStravaActivityMCP(unittest.TestCase):
     async def test_list_activities_error(self, mock_get_activities):
         """Test activity listing with API error."""
         mock_get_activities.side_effect = StravaAPIError("API Error")
-        
+
         result = await self.mcp_server.handle_tool_call("list_activities", {})
-        
+
         self.assertIn("error", result)
         self.assertIn("Strava API error", result["error"])
 
@@ -203,16 +204,16 @@ class TestStravaActivityMCP(unittest.TestCase):
             "distance": 5000
         }
         mock_get_detail.return_value = mock_activity
-        
+
         result = await self.mcp_server.handle_tool_call("get_activity_detail", {"activity_id": "12345"})
-        
+
         self.assertTrue(result["success"])
         self.assertEqual(result["activity"]["name"], "Test Activity")
 
     async def test_unknown_tool(self):
         """Test handling of unknown tool."""
         result = await self.mcp_server.handle_tool_call("unknown_tool", {})
-        
+
         self.assertIn("error", result)
         self.assertIn("Unknown tool", result["error"])
 
@@ -225,9 +226,12 @@ class TestStravaActivityMCP(unittest.TestCase):
             "heartrate": {"data": [120, 140, 160]}
         }
         activity_detail = {"id": 12345, "elapsed_time": 3600}
-        
-        result = self.mcp_server._convert_streams_to_analysis_format(streams, activity_detail)
-        
+
+        result = self.mcp_server._convert_streams_to_analysis_format(
+            streams,
+            activity_detail
+        )
+
         self.assertEqual(result["activity_id"], 12345)
         self.assertEqual(len(result["trackpoints"]), 3)
         self.assertEqual(result["trackpoints"][0]["time"], 0)
@@ -237,7 +241,7 @@ class TestStravaActivityMCP(unittest.TestCase):
     def test_convert_empty_streams(self):
         """Test conversion with empty streams."""
         result = self.mcp_server._convert_streams_to_analysis_format({}, {})
-        
+
         self.assertEqual(result, {})
 
 
@@ -248,15 +252,15 @@ class TestAsyncMethods(unittest.TestCase):
         """Test async methods using asyncio.run."""
         async def run_tests():
             mcp_server = StravaActivityMCP()
-            
+
             # Test unknown tool
             result = await mcp_server.handle_tool_call("unknown_tool", {})
             self.assertIn("error", result)
-            
+
             # Test get_authorization_url without credentials
             result = await mcp_server.handle_tool_call("get_authorization_url", {})
             self.assertIn("error", result)
-        
+
         asyncio.run(run_tests())
 
 

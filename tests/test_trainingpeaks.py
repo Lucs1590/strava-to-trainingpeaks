@@ -53,7 +53,10 @@ class TestTrainingPeaksClient(unittest.TestCase):
         auth_info = self.client.get_auth_info()
         self.assertFalse(auth_info['authenticated'])
         self.assertEqual(auth_info['auth_methods'], [])
-        self.assertIn('TRAININGPEAKS_ACCESS_TOKEN', auth_info['required_env_vars'][0])
+        self.assertIn(
+            'TRAININGPEAKS_ACCESS_TOKEN',
+            auth_info['required_env_vars'][0]
+        )
 
     @patch.dict('os.environ', {'TRAININGPEAKS_ACCESS_TOKEN': 'test_token'})
     def test_get_auth_info_with_token(self):
@@ -86,9 +89,9 @@ class TestTrainingPeaksClient(unittest.TestCase):
             "average_speed": 2.78,  # m/s
             "description": "Great run!"
         }
-        
+
         result = self.client._convert_strava_to_trainingpeaks(strava_activity)
-        
+
         self.assertEqual(result["title"], "Morning Run")
         self.assertEqual(result["sport"], "run")
         self.assertEqual(result["distance"], 5.0)  # converted to km
@@ -109,7 +112,7 @@ class TestTrainingPeaksMCP(unittest.TestCase):
         """Test that TrainingPeaks tools are included in available tools."""
         tools = self.mcp_server.get_available_tools()
         tool_names = [tool["name"] for tool in tools]
-        
+
         # Check that TrainingPeaks tools are present
         expected_tp_tools = [
             "get_trainingpeaks_auth_info",
@@ -123,14 +126,18 @@ class TestTrainingPeaksMCP(unittest.TestCase):
             "get_planned_workouts",
             "get_training_metrics"
         ]
-        
+
         for tool_name in expected_tp_tools:
-            self.assertIn(tool_name, tool_names, f"Tool {tool_name} not found in available tools")
+            self.assertIn(
+                tool_name,
+                tool_names,
+                f"Tool {tool_name} not found in available tools"
+            )
 
     async def test_get_trainingpeaks_auth_info(self):
         """Test getting TrainingPeaks auth info."""
         result = await self.mcp_server.handle_tool_call("get_trainingpeaks_auth_info", {})
-        
+
         self.assertTrue(result["success"])
         self.assertIn("auth_info", result)
         auth_info = result["auth_info"]
@@ -141,7 +148,7 @@ class TestTrainingPeaksMCP(unittest.TestCase):
     async def test_get_trainingpeaks_athlete_no_auth(self):
         """Test getting TrainingPeaks athlete without authentication."""
         result = await self.mcp_server.handle_tool_call("get_trainingpeaks_athlete", {})
-        
+
         self.assertIn("error", result)
         self.assertIn("Authentication required", result["error"])
 
@@ -151,7 +158,7 @@ class TestTrainingPeaksMCP(unittest.TestCase):
             "days_back": 30,
             "limit": 10
         })
-        
+
         self.assertIn("error", result)
         self.assertIn("Authentication required", result["error"])
 
@@ -168,19 +175,19 @@ class TestTrainingPeaksMCP(unittest.TestCase):
             "distance": 5000
         }
         mock_get_activity.return_value = mock_activity
-        
+
         # Mock sync result
         mock_sync.return_value = {
             "success": True,
             "strava_activity_id": 12345,
             "trainingpeaks_result": {"status": "uploaded"}
         }
-        
+
         result = await self.mcp_server.handle_tool_call("sync_strava_to_trainingpeaks", {
             "activity_id": "12345",
             "include_tcx": False
         })
-        
+
         self.assertTrue(result["success"])
         self.assertEqual(result["activity_id"], "12345")
         self.assertIn("sync_result", result)
@@ -193,15 +200,14 @@ class TestAsyncTrainingPeaksMethods(unittest.TestCase):
         """Test async TrainingPeaks methods using asyncio.run."""
         async def run_tests():
             mcp_server = StravaActivityMCP()
-            
+
             # Test TrainingPeaks auth info
             result = await mcp_server.handle_tool_call("get_trainingpeaks_auth_info", {})
             self.assertTrue(result["success"])
-            
-            # Test without authentication 
+
             result = await mcp_server.handle_tool_call("get_trainingpeaks_athlete", {})
             self.assertIn("error", result)
-        
+
         asyncio.run(run_tests())
 
 
