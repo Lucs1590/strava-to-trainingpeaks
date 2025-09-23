@@ -156,20 +156,24 @@ class TCXProcessor:
                     "Browser opening failed - this is common in WSL when running as root. "
                     "Please manually navigate to: %s", url
                 )
-                print(f"\nBrowser opening failed in WSL environment.")
-                print(f"Please manually open this URL in your browser: {url}")
-                print("The TCX file should download automatically.")
-                print("You'll be prompted to provide the file path after download.")
+                self.logger.info("Browser opening failed in WSL environment.")
+                self.logger.info(
+                    f"Please manually open this URL in your browser: {url}")
+                self.logger.info("The TCX file should download automatically.")
+                self.logger.info(
+                    "You'll be prompted to provide the file path after download."
+                )
             else:
                 self.logger.warning(
                     "Browser opening failed. Please manually navigate to: %s", url
                 )
-                print(f"\nBrowser opening failed.")
-                print(f"Please manually open this URL in your browser: {url}")
-                print("The TCX file should download automatically.")
-                print("You'll be prompted to provide the file path after download.")
+                self.logger.warning(
+                    "The TCX file should download automatically."
+                )
+                self.logger.warning(
+                    "You'll be prompted to provide the file path after download."
+                )
 
-            # Don't raise an exception - allow the process to continue
             return
 
     def _get_latest_download(self) -> str:
