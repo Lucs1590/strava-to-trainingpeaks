@@ -277,15 +277,13 @@ class TestMain(unittest.TestCase):
         processor.sport = main_module.Sport.BIKE
         with patch("src.main.webbrowser.open", side_effect=Exception("browser fail")), \
                 patch.object(processor.logger, "error") as mock_error, \
-                patch.object(processor.logger, "warning") as mock_warning, \
-                patch('builtins.print') as mock_print:
+                patch.object(processor.logger, "warning") as mock_warning:
             # Should not raise an exception anymore - gracefully handles the error
             processor._download_tcx_file("123456")
             mock_error.assert_called_with(
                 "Failed to download the TCX file from Strava")
-            # Should log a warning and print guidance
+            # Should log a warning
             mock_warning.assert_called()
-            mock_print.assert_called()
 
     def test_is_wsl_environment(self):
         processor = TCXProcessor()
@@ -310,7 +308,7 @@ class TestMain(unittest.TestCase):
         with patch("src.main.webbrowser.open", side_effect=Exception("browser fail")), \
                 patch.object(processor.logger, "error") as mock_error, \
                 patch.object(processor.logger, "warning") as mock_warning, \
-                patch('builtins.print') as mock_print, \
+                patch.object(processor.logger, "info") as mock_info, \
                 patch.object(processor, '_is_wsl_environment', return_value=True), \
                 patch.object(processor, '_is_running_as_root', return_value=True):
 
@@ -324,12 +322,13 @@ class TestMain(unittest.TestCase):
                 "Please manually navigate to: %s",
                 "https://www.strava.com/activities/123456/export_tcx"
             )
-            # Verify helpful print messages
-            print_calls = [call[0][0] for call in mock_print.call_args_list]
+            # Verify helpful info messages
+            mock_info.assert_called()
+            info_calls = [call[0][0] for call in mock_info.call_args_list]
             self.assertTrue(
-                any("Browser opening failed in WSL environment." in call for call in print_calls))
+                any("Browser opening failed in WSL environment." in call for call in info_calls))
             self.assertTrue(any(
-                "https://www.strava.com/activities/123456/export_tcx" in call for call in print_calls))
+                "https://www.strava.com/activities/123456/export_tcx" in call for call in info_calls))
 
     def test_is_running_as_root(self):
         processor = TCXProcessor()
