@@ -303,6 +303,30 @@ class TestMain(unittest.TestCase):
         with patch('os.path.exists', return_value=False):
             self.assertFalse(processor._is_wsl_environment())
 
+    def test_tcx_processor_download_tcx_file_exception_wsl_root(self):
+        """Test specific error handling for WSL + root environment."""
+        processor = TCXProcessor()
+        processor.sport = main_module.Sport.BIKE
+        with patch("src.main.webbrowser.open", side_effect=Exception("browser fail")), \
+                patch.object(processor.logger, "error") as mock_error, \
+                patch.object(processor.logger, "warning") as mock_warning, \
+                patch('builtins.print') as mock_print, \
+                patch.object(processor, '_is_wsl_environment', return_value=True), \
+                patch.object(processor, '_is_running_as_root', return_value=True):
+            
+            processor._download_tcx_file("123456")
+            
+            mock_error.assert_called_with("Failed to download the TCX file from Strava")
+            # Should show WSL-specific warning message
+            mock_warning.assert_called_with(
+                "Browser opening failed - this is common in WSL when running as root. "
+                "Please manually navigate to: %s", 
+                "https://www.strava.com/activities/123456/export_tcx"
+            )
+            # Verify helpful print messages
+            print_calls = [call[0][0] for call in mock_print.call_args_list]
+            self.assertTrue(any("Browser opening failed in WSL environment." in call for call in print_calls))
+            self.assertTrue(any("https://www.strava.com/activities/123456/export_tcx" in call for call in print_calls))
     def test_is_running_as_root(self):
         processor = TCXProcessor()
         # Test running as root
