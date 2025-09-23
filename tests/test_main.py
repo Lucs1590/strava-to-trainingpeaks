@@ -277,13 +277,14 @@ class TestMain(unittest.TestCase):
         processor.sport = main_module.Sport.BIKE
         with patch("src.main.webbrowser.open", side_effect=Exception("browser fail")), \
                 patch.object(processor.logger, "error") as mock_error, \
-                patch.object(processor.logger, "warning") as mock_warning:
+                patch.object(processor.logger, "warning") as mock_warning, \
+                patch.object(processor, '_is_wsl_environment', return_value=False):
             # Should not raise an exception anymore - gracefully handles the error
             processor._download_tcx_file("123456")
             mock_error.assert_called_with(
                 "Failed to download the TCX file from Strava")
-            # Should log a warning
-            mock_warning.assert_called()
+            # Should not log a warning in non-WSL environment
+            mock_warning.assert_not_called()
 
     def test_is_wsl_environment(self):
         processor = TCXProcessor()
@@ -301,16 +302,14 @@ class TestMain(unittest.TestCase):
         with patch('os.path.exists', return_value=False):
             self.assertFalse(processor._is_wsl_environment())
 
-    def test_tcx_processor_download_tcx_file_exception_wsl_root(self):
-        """Test specific error handling for WSL + root environment."""
+    def test_tcx_processor_download_tcx_file_exception_wsl(self):
+        """Test specific error handling for WSL environment."""
         processor = TCXProcessor()
         processor.sport = main_module.Sport.BIKE
         with patch("src.main.webbrowser.open", side_effect=Exception("browser fail")), \
                 patch.object(processor.logger, "error") as mock_error, \
                 patch.object(processor.logger, "warning") as mock_warning, \
-                patch.object(processor.logger, "info") as mock_info, \
-                patch.object(processor, '_is_wsl_environment', return_value=True), \
-                patch.object(processor, '_is_running_as_root', return_value=True):
+                patch.object(processor, '_is_wsl_environment', return_value=True):
 
             processor._download_tcx_file("123456")
 
@@ -318,31 +317,10 @@ class TestMain(unittest.TestCase):
                 "Failed to download the TCX file from Strava")
             # Should show WSL-specific warning message
             mock_warning.assert_called_with(
-                "Browser opening failed - this is common in WSL when running as root. "
+                "Browser opening failed - this is common in WSL. "
                 "Please manually navigate to: %s",
                 "https://www.strava.com/activities/123456/export_tcx"
             )
-            # Verify helpful info messages
-            mock_info.assert_called()
-            info_calls = [call[0][0] for call in mock_info.call_args_list]
-            self.assertTrue(
-                any("Browser opening failed in WSL environment." in call for call in info_calls))
-            self.assertTrue(any(
-                "https://www.strava.com/activities/123456/export_tcx" in call for call in info_calls))
-
-    def test_is_running_as_root(self):
-        processor = TCXProcessor()
-        # Test running as root
-        with patch('src.main.os.geteuid', return_value=0):
-            self.assertTrue(processor._is_running_as_root())
-
-        # Test running as non-root
-        with patch('src.main.os.geteuid', return_value=1000):
-            self.assertFalse(processor._is_running_as_root())
-
-        # Test when geteuid is not available (Windows) - simulate missing attribute
-        with patch('src.main.hasattr', return_value=False):
-            self.assertFalse(processor._is_running_as_root())
 
     def test_tcx_processor_get_latest_download_with_files(self):
         processor = TCXProcessor()
