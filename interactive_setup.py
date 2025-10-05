@@ -31,7 +31,10 @@ def docker_setup():
 def main():
     setup_method = questionary.select(
         "Choose your preferred setup method:",
-        choices=["Global installation", "Virtual environment", "Docker"]
+        choices=["Global installation", "Virtual environment", "Docker"],
+        use_arrow_keys=True,
+        use_jk_keys=True,
+        instruction="(Use arrow keys to navigate)"
     ).ask()
 
     if setup_method == "Global installation":

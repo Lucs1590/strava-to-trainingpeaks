@@ -79,7 +79,10 @@ class TCXProcessor:
         """Get sport selection from user."""
         sport_choice = questionary.select(
             "Which sport do you want to export to TrainingPeaks?",
-            choices=[sport.value for sport in Sport]
+            choices=[sport.value for sport in Sport],
+            use_arrow_keys=True,
+            use_jk_keys=True,
+            instruction="(Use arrow keys to navigate)"
         ).ask()
 
         return Sport(sport_choice)
@@ -88,7 +91,10 @@ class TCXProcessor:
         """Get TCX file path from user input or download."""
         file_location = questionary.select(
             "Do you want to download the TCX file from Strava or provide the file path?",
-            choices=["Download", "Provide path"]
+            choices=["Download", "Provide path"],
+            use_arrow_keys=True,
+            use_jk_keys=True,
+            instruction="(Use arrow keys to navigate)"
         ).ask()
 
         if file_location == "Download":

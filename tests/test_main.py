@@ -178,6 +178,18 @@ class TestMain(unittest.TestCase):
             sport = processor._get_sport_selection()
             self.assertEqual(sport, main_module.Sport.OTHER)
 
+    def test_tcx_processor_get_sport_selection_navigation_enabled(self):
+        processor = TCXProcessor()
+        with patch('src.main.questionary.select') as mock_select:
+            mock_select.return_value.ask.return_value = "Run"
+            processor._get_sport_selection()
+            
+            # Verify navigation parameters are set correctly
+            call_kwargs = mock_select.call_args[1]
+            self.assertTrue(call_kwargs.get('use_arrow_keys'))
+            self.assertTrue(call_kwargs.get('use_jk_keys'))
+            self.assertEqual(call_kwargs.get('instruction'), "(Use arrow keys to navigate)")
+
     def test_tcx_processor_get_tcx_file_path_download(self):
         processor = TCXProcessor()
         with patch('src.main.questionary.select') as mock_select, \
@@ -195,6 +207,19 @@ class TestMain(unittest.TestCase):
             result = processor._get_tcx_file_path()
             mock_get_path.assert_called_once()
             self.assertEqual(result, "provided.tcx")
+
+    def test_tcx_processor_get_tcx_file_path_navigation_enabled(self):
+        processor = TCXProcessor()
+        with patch('src.main.questionary.select') as mock_select, \
+                patch.object(processor, "_get_file_path_from_user", return_value="provided.tcx"):
+            mock_select.return_value.ask.return_value = "Provide path"
+            processor._get_tcx_file_path()
+            
+            # Verify navigation parameters are set correctly
+            call_kwargs = mock_select.call_args[1]
+            self.assertTrue(call_kwargs.get('use_arrow_keys'))
+            self.assertTrue(call_kwargs.get('use_jk_keys'))
+            self.assertEqual(call_kwargs.get('instruction'), "(Use arrow keys to navigate)")
 
     def test_tcx_processor_handle_download_flow(self):
         processor = TCXProcessor()
