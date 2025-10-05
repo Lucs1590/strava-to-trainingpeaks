@@ -58,18 +58,27 @@ class TCXProcessor:
     def run(self) -> None:
         """Main execution flow."""
         try:
-            self.sport = self._get_sport_selection()
-            self.logger.info("Selected sport: %s", self.sport.value)
+            # Loop to allow going back to sport selection
+            while True:
+                self.sport = self._get_sport_selection()
+                self.logger.info("Selected sport: %s", self.sport.value)
 
-            file_path = self._get_tcx_file_path()
-            if not file_path:
-                self.logger.error("No valid file path provided")
-                return
+                file_path = self._get_tcx_file_path()
+                
+                # Check if user wants to go back
+                if file_path == "BACK":
+                    self.logger.info("Going back to sport selection")
+                    continue
+                
+                if not file_path:
+                    self.logger.error("No valid file path provided")
+                    return
 
-            self._process_by_sport(file_path)
-            self._format_xml_file(file_path)
+                self._process_by_sport(file_path)
+                self._format_xml_file(file_path)
 
-            self.logger.info("Process completed successfully!")
+                self.logger.info("Process completed successfully!")
+                break
 
         except Exception as err:
             self.logger.error("Process failed: %s", str(err))
@@ -91,12 +100,14 @@ class TCXProcessor:
         """Get TCX file path from user input or download."""
         file_location = questionary.select(
             "Do you want to download the TCX file from Strava or provide the file path?",
-            choices=["Download", "Provide path"],
+            choices=["Download", "Provide path", "← Back to sport selection"],
             use_arrow_keys=True,
             use_jk_keys=True,
             instruction="(Use arrow keys to navigate)"
         ).ask()
 
+        if file_location == "← Back to sport selection":
+            return "BACK"
         if file_location == "Download":
             return self._handle_download_flow()
         return self._get_file_path_from_user()

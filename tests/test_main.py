@@ -220,6 +220,38 @@ class TestMain(unittest.TestCase):
             self.assertTrue(call_kwargs.get('use_arrow_keys'))
             self.assertTrue(call_kwargs.get('use_jk_keys'))
             self.assertEqual(call_kwargs.get('instruction'), "(Use arrow keys to navigate)")
+            
+            # Verify back option is available
+            choices = call_kwargs.get('choices')
+            self.assertIn("← Back to sport selection", choices)
+
+    def test_tcx_processor_get_tcx_file_path_back(self):
+        processor = TCXProcessor()
+        with patch('src.main.questionary.select') as mock_select:
+            mock_select.return_value.ask.return_value = "← Back to sport selection"
+            result = processor._get_tcx_file_path()
+            self.assertEqual(result, "BACK")
+
+    def test_tcx_processor_run_with_back(self):
+        processor = TCXProcessor()
+        with patch.object(processor, "_get_sport_selection") as mock_sport, \
+                patch.object(processor, "_get_tcx_file_path") as mock_file_path, \
+                patch.object(processor, "_process_by_sport") as mock_process, \
+                patch.object(processor, "_format_xml_file") as mock_format:
+            # First time: select sport, go back
+            # Second time: select sport again, provide file path
+            mock_sport.side_effect = [main_module.Sport.RUN, main_module.Sport.BIKE]
+            mock_file_path.side_effect = ["BACK", "fake.tcx"]
+            
+            processor.run()
+            
+            # Sport selection should be called twice (once initially, once after going back)
+            self.assertEqual(mock_sport.call_count, 2)
+            # File path selection should be called twice
+            self.assertEqual(mock_file_path.call_count, 2)
+            # Processing should only happen once (after valid file path)
+            mock_process.assert_called_once_with("fake.tcx")
+            mock_format.assert_called_once_with("fake.tcx")
 
     def test_tcx_processor_handle_download_flow(self):
         processor = TCXProcessor()
