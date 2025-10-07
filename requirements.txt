@@ -1,12 +1,12 @@
 cx_Freeze==8.4.1
 defusedxml==0.7.1
-langchain_core==0.3.76
-langchain_openai==0.3.33
+langchain_core==0.3.78
+langchain_openai==0.3.34
 numpy==2.3.3
 openai==1.109.1
-pandas==2.3.2
+pandas==2.3.3
 python-dotenv==1.1.1
 questionary==2.1.1
-scipy==1.15.2
+scipy==1.16.2
 tcxreader==0.4.11
 tqdm==4.67.1
