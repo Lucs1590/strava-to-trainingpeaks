@@ -28,7 +28,7 @@ setup(
         "langchain_core==0.3.78",
         "langchain_openai==0.3.34",
         "numpy==2.3.3",
-        "openai==1.109.1",
+        "openai==2.3.0",
         "pandas==2.3.3",
         "python-dotenv==1.1.1",
         "questionary==2.1.1",
