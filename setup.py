@@ -32,7 +32,7 @@ setup(
         "pandas==2.3.3",
         "python-dotenv==1.2.1",
         "questionary==2.1.1",
-        "scipy==1.16.2",
+        "scipy==1.16.3",
         "tcxreader==0.4.11",
         "tqdm==4.67.1"
     ],
