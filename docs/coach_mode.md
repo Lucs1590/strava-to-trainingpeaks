@@ -35,7 +35,7 @@ Before using Coach Mode, you need to:
    - **Client ID**: A numeric ID
    - **Client Secret**: A secret string (keep this secure!)
 
-![Strava API Settings](https://developers.strava.com/images/getting-started/api-settings.png)
+> **Note**: For visual reference, see the [Strava API Documentation](https://developers.strava.com/docs/getting-started/) which includes screenshots of the API settings page.
 
 ---
 

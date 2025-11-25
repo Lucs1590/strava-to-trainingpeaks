@@ -3,6 +3,7 @@ import unittest
 import json
 import time
 import os
+import tempfile
 from pathlib import Path
 from unittest.mock import patch, Mock, mock_open, MagicMock
 from http.server import HTTPServer
@@ -78,7 +79,10 @@ class TestTokenStorage(unittest.TestCase):
     """Tests for TokenStorage class."""
 
     def setUp(self):
-        self.test_file = "/tmp/test_tokens.json"
+        # Use tempfile for cross-platform compatibility
+        self.temp_fd, self.test_file = tempfile.mkstemp(suffix='.json')
+        os.close(self.temp_fd)
+        os.remove(self.test_file)  # Remove so we start with no file
         self.storage = TokenStorage(self.test_file)
 
     def tearDown(self):

@@ -197,11 +197,12 @@ class CoachSyncManager:
             from .main import TCXProcessor
 
             processor = TCXProcessor()
-            processor.run_with_file(file_path)
-        except AttributeError:
-            # run_with_file method doesn't exist yet
-            print(f"\n📁 TCX file saved at: {file_path}")
-            print("Run 'strava-to-trainingpeaks' and select 'Provide path' to process this file.")
+            if hasattr(processor, 'run_with_file'):
+                processor.run_with_file(file_path)
+            else:
+                # run_with_file method doesn't exist yet
+                print(f"\n📁 TCX file saved at: {file_path}")
+                print("Run 'strava-to-trainingpeaks' and select 'Provide path' to process this file.")
         except Exception as err:
             self.logger.error("Failed to process TCX file: %s", str(err))
             print(f"\n📁 TCX file saved at: {file_path}")

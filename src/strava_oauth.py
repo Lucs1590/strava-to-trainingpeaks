@@ -10,7 +10,8 @@ import logging
 import os
 import time
 import webbrowser
-from dataclasses import dataclass, asdict, field
+from dataclasses import dataclass, asdict
+from datetime import datetime, timedelta, timezone
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 from threading import Thread
@@ -530,8 +531,6 @@ class StravaAPIClient:
         self, activity: dict, streams: dict
     ) -> Optional[str]:
         """Generate TCX content from Strava streams data."""
-        from datetime import datetime, timedelta, timezone
-
         sport_mapping = {
             "Run": "Running",
             "Ride": "Biking",
