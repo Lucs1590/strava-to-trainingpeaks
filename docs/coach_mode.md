@@ -5,6 +5,7 @@ This guide explains how to use the Coach Mode feature to sync Strava activities 
 ## Overview
 
 Coach Mode allows coaches or managers to:
+
 - Authorize multiple athletes via OAuth (one-time setup per athlete)
 - Download activities on behalf of athletes
 - Sync activities to TrainingPeaks without requiring athletes to run any code
@@ -73,6 +74,7 @@ Each athlete needs to authorize the app once. This can be done in person or remo
 ### In-Person Authorization
 
 1. Run the coach mode:
+
    ```bash
    strava-coach-mode
    ```
@@ -82,7 +84,7 @@ Each athlete needs to authorize the app once. This can be done in person or remo
 3. Have the athlete:
    - Log into their Strava account in the browser that opens
    - Click **Authorize** to grant permission
-   
+
 4. The athlete's token is now stored locally
 
 ### Remote Authorization
@@ -90,6 +92,7 @@ Each athlete needs to authorize the app once. This can be done in person or remo
 For athletes who can't be present:
 
 1. Share the authorization URL with them:
+
    ```python
    from src.strava_oauth import StravaOAuthClient
    
@@ -100,11 +103,13 @@ For athletes who can't be present:
 2. The athlete visits the URL, logs in, and authorizes
 
 3. The callback will fail (since it's localhost), but they can copy the authorization code from the URL:
+
    ```
    http://localhost:8089/callback?code=XXXXXXXX&scope=...
    ```
 
 4. Manually exchange the code (advanced):
+
    ```python
    token = client._exchange_code_for_token("XXXXXXXX")
    ```
@@ -141,6 +146,7 @@ strava-coach-mode
 ### Finding Activity IDs
 
 Activity IDs can be found in Strava URLs:
+
 ```
 https://www.strava.com/activities/1234567890
                                  ^^^^^^^^^^
@@ -158,6 +164,7 @@ Or use **"List athlete's recent activities"** to see recent activity IDs.
 - Tokens are stored in `.strava_tokens.json` by default
 - This file should **NOT** be committed to version control
 - Add to `.gitignore`:
+
   ```
   .strava_tokens.json
   ```
@@ -184,6 +191,7 @@ Or use **"List athlete's recent activities"** to see recent activity IDs.
 ### File Permissions
 
 On Unix systems, restrict token file permissions:
+
 ```bash
 chmod 600 .strava_tokens.json
 ```
@@ -209,7 +217,8 @@ The application handles rate limiting gracefully, but avoid rapid bulk operation
 
 **Cause**: Environment variables not set.
 
-**Solution**: 
+**Solution**:
+
 1. Create a `.env` file with your credentials
 2. Or export variables: `export STRAVA_CLIENT_ID=xxx`
 
@@ -224,6 +233,7 @@ The application handles rate limiting gracefully, but avoid rapid bulk operation
 **Cause**: Activity may be private or token may be expired.
 
 **Solutions**:
+
 1. Ensure the activity is accessible with the granted scope
 2. Try refreshing the token (automatic on next request)
 3. Re-authorize the athlete

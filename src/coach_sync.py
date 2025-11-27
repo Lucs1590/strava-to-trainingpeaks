@@ -6,9 +6,6 @@ trigger syncs, and download activities on behalf of their runners.
 """
 
 import logging
-import os
-import sys
-import time
 from pathlib import Path
 from typing import Optional
 
@@ -16,9 +13,7 @@ import questionary
 
 from .strava_oauth import (
     StravaOAuthClient,
-    StravaAPIClient,
-    StravaOAuthConfig,
-    AthleteToken
+    StravaAPIClient
 )
 
 
@@ -53,7 +48,8 @@ class CoachSyncManager:
         """Main coach mode menu."""
         if not self.oauth_client:
             print("\n⚠️  Strava OAuth is not configured.")
-            print("Please set STRAVA_CLIENT_ID and STRAVA_CLIENT_SECRET environment variables.")
+            print(
+                "Please set STRAVA_CLIENT_ID and STRAVA_CLIENT_SECRET environment variables.")
             print("See docs/coach_mode.md for setup instructions.\n")
             return
 
@@ -99,7 +95,8 @@ class CoachSyncManager:
 
         token = self.oauth_client.authorize_athlete(timeout=180)
         if token:
-            print(f"\n✅ Successfully added athlete: {token.athlete_name} (ID: {token.athlete_id})")
+            print(
+                f"\n✅ Successfully added athlete: {token.athlete_name} (ID: {token.athlete_id})")
         else:
             print("\n❌ Failed to add athlete. Please try again.")
 
@@ -174,7 +171,8 @@ class CoachSyncManager:
 
         print(f"\n⏳ Downloading activity {activity_id}...")
 
-        result = self.api_client.download_tcx(athlete_id, activity_id, output_path)
+        result = self.api_client.download_tcx(
+            athlete_id, activity_id, output_path)
 
         if result:
             print(f"✅ Activity downloaded successfully to: {result}")
@@ -202,11 +200,13 @@ class CoachSyncManager:
             else:
                 # run_with_file method doesn't exist yet
                 print(f"\n📁 TCX file saved at: {file_path}")
-                print("Run 'strava-to-trainingpeaks' and select 'Provide path' to process this file.")
+                print(
+                    "Run 'strava-to-trainingpeaks' and select 'Provide path' to process this file.")
         except Exception as err:
             self.logger.error("Failed to process TCX file: %s", str(err))
             print(f"\n📁 TCX file saved at: {file_path}")
-            print("Run 'strava-to-trainingpeaks' and select 'Provide path' to process this file.")
+            print(
+                "Run 'strava-to-trainingpeaks' and select 'Provide path' to process this file.")
 
     def _list_activities(self) -> None:
         """List recent activities for an athlete."""
@@ -230,7 +230,8 @@ class CoachSyncManager:
             sport = activity.get("type", "Unknown")
             distance = activity.get("distance", 0) / 1000  # Convert to km
             date = activity.get("start_date_local", "Unknown date")[:10]
-            print(f"  [{activity_id}] {date} - {sport}: {name} ({distance:.2f} km)")
+            print(
+                f"  [{activity_id}] {date} - {sport}: {name} ({distance:.2f} km)")
         print("-" * 60)
         print(f"Showing {len(activities)} most recent activities.\n")
 

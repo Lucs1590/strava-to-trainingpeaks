@@ -1,14 +1,14 @@
 # pylint: disable=protected-access
 import unittest
 import os
-from unittest.mock import patch, Mock, MagicMock
+from unittest.mock import patch, Mock
 
 from src.coach_sync import (
     CoachSyncManager,
     coach_mode_main,
     setup_logging
 )
-from src.strava_oauth import AthleteToken, StravaOAuthClient, StravaAPIClient
+from src.strava_oauth import AthleteToken
 
 
 class TestCoachSyncManager(unittest.TestCase):
@@ -125,7 +125,8 @@ class TestCoachSyncManager(unittest.TestCase):
         """Test successfully selecting an athlete."""
         manager = CoachSyncManager()
         manager.oauth_client = Mock()
-        manager.oauth_client.list_athletes = Mock(return_value={12345: "Alice"})
+        manager.oauth_client.list_athletes = Mock(
+            return_value={12345: "Alice"})
 
         mock_select.return_value.ask.return_value = "Alice (ID: 12345)"
 
@@ -209,7 +210,8 @@ class TestCoachSyncManager(unittest.TestCase):
         """Test confirming athlete removal."""
         manager = CoachSyncManager()
         manager.oauth_client = Mock()
-        manager.oauth_client.list_athletes = Mock(return_value={12345: "Alice"})
+        manager.oauth_client.list_athletes = Mock(
+            return_value={12345: "Alice"})
         manager.oauth_client.remove_athlete = Mock(return_value=True)
 
         mock_select.return_value.ask.return_value = "Alice (ID: 12345)"
@@ -229,7 +231,8 @@ class TestCoachSyncManager(unittest.TestCase):
         """Test cancelling athlete removal."""
         manager = CoachSyncManager()
         manager.oauth_client = Mock()
-        manager.oauth_client.list_athletes = Mock(return_value={12345: "Alice"})
+        manager.oauth_client.list_athletes = Mock(
+            return_value={12345: "Alice"})
 
         mock_select.return_value.ask.return_value = "Alice (ID: 12345)"
         mock_confirm.return_value.ask.return_value = False
@@ -248,9 +251,11 @@ class TestCoachSyncManager(unittest.TestCase):
         """Test successfully syncing an activity."""
         manager = CoachSyncManager()
         manager.oauth_client = Mock()
-        manager.oauth_client.list_athletes = Mock(return_value={12345: "Alice"})
+        manager.oauth_client.list_athletes = Mock(
+            return_value={12345: "Alice"})
         manager.api_client = Mock()
-        manager.api_client.download_tcx = Mock(return_value="/tmp/activity.tcx")
+        manager.api_client.download_tcx = Mock(
+            return_value="/tmp/activity.tcx")
 
         mock_select.return_value.ask.return_value = "Alice (ID: 12345)"
         mock_text.return_value.ask.return_value = "987654321"
@@ -270,7 +275,8 @@ class TestCoachSyncManager(unittest.TestCase):
         """Test syncing activity with invalid ID."""
         manager = CoachSyncManager()
         manager.oauth_client = Mock()
-        manager.oauth_client.list_athletes = Mock(return_value={12345: "Alice"})
+        manager.oauth_client.list_athletes = Mock(
+            return_value={12345: "Alice"})
 
         mock_select.return_value.ask.return_value = "Alice (ID: 12345)"
         mock_text.return_value.ask.return_value = "not_a_number"
@@ -293,7 +299,8 @@ class TestCoachSyncManager(unittest.TestCase):
         """Test listing athlete activities."""
         manager = CoachSyncManager()
         manager.oauth_client = Mock()
-        manager.oauth_client.list_athletes = Mock(return_value={12345: "Alice"})
+        manager.oauth_client.list_athletes = Mock(
+            return_value={12345: "Alice"})
         manager.api_client = Mock()
         manager.api_client.list_activities = Mock(return_value=[
             {
@@ -309,7 +316,8 @@ class TestCoachSyncManager(unittest.TestCase):
 
         with patch('builtins.print') as mock_print:
             manager._list_activities()
-            manager.api_client.list_activities.assert_called_once_with(12345, per_page=10)
+            manager.api_client.list_activities.assert_called_once_with(
+                12345, per_page=10)
 
 
 class TestCoachModeMain(unittest.TestCase):

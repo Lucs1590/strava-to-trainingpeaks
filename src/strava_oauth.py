@@ -160,7 +160,8 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
                 OAuthCallbackHandler.authorization_code = params['code'][0]
                 self._send_success_response()
             elif 'error' in params:
-                OAuthCallbackHandler.error = params.get('error', ['unknown'])[0]
+                OAuthCallbackHandler.error = params.get(
+                    'error', ['unknown'])[0]
                 self._send_error_response()
             else:
                 self._send_error_response()
@@ -233,7 +234,8 @@ class StravaOAuthClient:
         return StravaOAuthConfig(
             client_id=client_id,
             client_secret=client_secret,
-            redirect_uri=os.getenv("STRAVA_REDIRECT_URI", DEFAULT_REDIRECT_URI),
+            redirect_uri=os.getenv("STRAVA_REDIRECT_URI",
+                                   DEFAULT_REDIRECT_URI),
             scopes=os.getenv("STRAVA_SCOPES", DEFAULT_SCOPES),
             token_file=os.getenv("STRAVA_TOKEN_FILE", DEFAULT_TOKEN_FILE)
         )
@@ -338,7 +340,8 @@ class StravaOAuthClient:
             athlete = data.get("athlete", {})
             token = AthleteToken(
                 athlete_id=athlete.get("id"),
-                athlete_name=f"{athlete.get('firstname', '')} {athlete.get('lastname', '')}".strip(),
+                athlete_name=f"{athlete.get('firstname', '')} {athlete.get('lastname', '')}".strip(
+                ),
                 access_token=data["access_token"],
                 refresh_token=data["refresh_token"],
                 expires_at=data["expires_at"],
@@ -354,7 +357,8 @@ class StravaOAuthClient:
             return token
 
         except requests.RequestException as err:
-            self.logger.error("Failed to exchange code for token: %s", str(err))
+            self.logger.error(
+                "Failed to exchange code for token: %s", str(err))
             return None
 
     def refresh_token(self, athlete_id: int) -> Optional[AthleteToken]:
@@ -544,9 +548,11 @@ class StravaAPIClient:
         activity_type = activity.get("type", "Other")
         sport = sport_mapping.get(activity_type, "Other")
 
-        start_time_str = activity.get("start_date", datetime.now(timezone.utc).isoformat())
+        start_time_str = activity.get(
+            "start_date", datetime.now(timezone.utc).isoformat())
         try:
-            start_time = datetime.fromisoformat(start_time_str.replace('Z', '+00:00'))
+            start_time = datetime.fromisoformat(
+                start_time_str.replace('Z', '+00:00'))
         except ValueError:
             start_time = datetime.now(timezone.utc)
 

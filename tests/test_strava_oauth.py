@@ -1,12 +1,9 @@
 # pylint: disable=protected-access
 import unittest
-import json
 import time
 import os
 import tempfile
-from pathlib import Path
-from unittest.mock import patch, Mock, mock_open, MagicMock
-from http.server import HTTPServer
+from unittest.mock import patch, Mock
 
 from src.strava_oauth import (
     AthleteToken,
@@ -18,9 +15,7 @@ from src.strava_oauth import (
     DEFAULT_REDIRECT_URI,
     DEFAULT_SCOPES,
     DEFAULT_TOKEN_FILE,
-    STRAVA_AUTH_URL,
-    STRAVA_TOKEN_URL,
-    STRAVA_API_BASE
+    STRAVA_AUTH_URL
 )
 
 
@@ -368,7 +363,8 @@ class TestStravaOAuthClient(unittest.TestCase):
         }):
             client = StravaOAuthClient(config)
             client.storage = Mock()
-            client.storage.list_athletes = Mock(return_value={1: "Alice", 2: "Bob"})
+            client.storage.list_athletes = Mock(
+                return_value={1: "Alice", 2: "Bob"})
 
             athletes = client.list_athletes()
 
