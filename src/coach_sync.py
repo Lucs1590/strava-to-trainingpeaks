@@ -15,6 +15,7 @@ from .strava_oauth import (
     StravaOAuthClient,
     StravaAPIClient
 )
+from .main import TCXProcessor
 
 
 def setup_logging() -> logging.Logger:
@@ -192,13 +193,10 @@ class CoachSyncManager:
     def _process_tcx_file(self, file_path: str) -> None:
         """Process a TCX file with the main application."""
         try:
-            from .main import TCXProcessor
-
             processor = TCXProcessor()
             if hasattr(processor, 'run_with_file'):
                 processor.run_with_file(file_path)
             else:
-                # run_with_file method doesn't exist yet
                 print(f"\n📁 TCX file saved at: {file_path}")
                 print(
                     "Run 'strava-to-trainingpeaks' and select 'Provide path' to process this file.")
