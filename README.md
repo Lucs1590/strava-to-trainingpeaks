@@ -128,6 +128,24 @@ python interactive_setup.py
 
 This project is licensed under the MIT License - see the [LICENSE](https://github.com/Lucs1590/strava-to-trainingpeaks/blob/main/LICENSE) file for details.
 
+## Coach Mode (Multi-Athlete Sync)
+
+Coach Mode allows coaches to sync Strava activities for multiple athletes without requiring each athlete to run any code locally.
+
+### Quick Start
+
+1. Set up Strava OAuth credentials (see [docs/coach_mode.md](docs/coach_mode.md))
+2. Run coach mode:
+
+```bash
+strava-coach-mode
+```
+
+3. Add athletes via OAuth authorization
+4. Sync activities on behalf of your athletes
+
+For detailed setup instructions, see [Coach Mode Documentation](docs/coach_mode.md).
+
 ## Contributing
 
 1. Fork the repository.
