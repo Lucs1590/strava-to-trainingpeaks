@@ -25,14 +25,14 @@ setup(
     packages=find_packages(),
     install_requires=[
         "defusedxml==0.7.1",
-        "langchain_openai==1.1.0",
+        "langchain_openai==1.0.3",
         "langchain_core==1.1.0",
-        "numpy==1.24.4",
+        "numpy==2.3.5",
         "openai==2.8.1",
         "pandas==2.3.3",
         "python-dotenv==1.2.1",
         "questionary==2.1.1",
-        "requests>=2.31.0",
+        "requests",
         "scipy==1.16.3",
         "tcxreader==0.4.11",
         "tqdm==4.67.1"
