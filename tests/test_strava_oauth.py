@@ -4,6 +4,8 @@ import time
 import os
 import tempfile
 from unittest.mock import patch, Mock
+from urllib.parse import urlparse, parse_qs
+
 
 from src.strava_oauth import (
     AthleteToken,
@@ -160,7 +162,7 @@ class TestTokenStorage(unittest.TestCase):
 
     def test_load_corrupted_json(self):
         """Test handling corrupted JSON file."""
-        with open(self.test_file, 'w') as f:
+        with open(self.test_file, 'w', encoding='utf-8') as f:
             f.write("not valid json")
 
         tokens = self.storage.load_tokens()
@@ -180,7 +182,6 @@ class TestOAuthCallbackHandler(unittest.TestCase):
         handler.path = "/callback?code=test_code_123&scope=activity:read"
 
         # Simulate parsing
-        from urllib.parse import urlparse, parse_qs
         parsed = urlparse(handler.path)
         params = parse_qs(parsed.query)
 
@@ -191,7 +192,6 @@ class TestOAuthCallbackHandler(unittest.TestCase):
         handler = Mock(spec=OAuthCallbackHandler)
         handler.path = "/callback?error=access_denied"
 
-        from urllib.parse import urlparse, parse_qs
         parsed = urlparse(handler.path)
         params = parse_qs(parsed.query)
 

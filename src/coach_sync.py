@@ -68,7 +68,7 @@ class CoachSyncManager:
 
             if action is None or "Exit" in action:
                 break
-            elif "Add new" in action:
+            if "Add new" in action:
                 self._add_athlete()
             elif "List registered" in action:
                 self._list_athletes()
@@ -214,7 +214,7 @@ class CoachSyncManager:
         if not athlete_id:
             return
 
-        print(f"\n⏳ Fetching recent activities...")
+        print("\n⏳ Fetching recent activities...")
 
         activities = self.api_client.list_activities(athlete_id, per_page=10)
 

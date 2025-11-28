@@ -1,6 +1,7 @@
 # pylint: disable=protected-access
 import unittest
 import os
+import tempfile
 from unittest.mock import patch, Mock
 
 from src.coach_sync import (
@@ -83,7 +84,6 @@ class TestCoachSyncManager(unittest.TestCase):
 
         with patch('builtins.print') as mock_print:
             manager._list_athletes()
-            # Check that the header was printed
             mock_print.assert_any_call("\n📋 Registered Athletes:")
 
     @patch.dict(os.environ, {
@@ -172,7 +172,6 @@ class TestCoachSyncManager(unittest.TestCase):
         with patch('builtins.print') as mock_print:
             manager._add_athlete()
             manager.oauth_client.authorize_athlete.assert_called_once()
-            # Check success message was printed
             success_calls = [
                 call for call in mock_print.call_args_list
                 if "Successfully added athlete" in str(call)
@@ -193,7 +192,6 @@ class TestCoachSyncManager(unittest.TestCase):
 
         with patch('builtins.print') as mock_print:
             manager._add_athlete()
-            # Check failure message was printed
             failure_calls = [
                 call for call in mock_print.call_args_list
                 if "Failed to add athlete" in str(call)
@@ -217,7 +215,7 @@ class TestCoachSyncManager(unittest.TestCase):
         mock_select.return_value.ask.return_value = "Alice (ID: 12345)"
         mock_confirm.return_value.ask.return_value = True
 
-        with patch('builtins.print') as mock_print:
+        with patch('builtins.print'):
             manager._remove_athlete()
             manager.oauth_client.remove_athlete.assert_called_once_with(12345)
 
@@ -254,14 +252,20 @@ class TestCoachSyncManager(unittest.TestCase):
         manager.oauth_client.list_athletes = Mock(
             return_value={12345: "Alice"})
         manager.api_client = Mock()
-        manager.api_client.download_tcx = Mock(
-            return_value="/tmp/activity.tcx")
+        tmpfile = tempfile.NamedTemporaryFile(
+            prefix="activity_",
+            suffix=".tcx",
+            delete=False
+        )
+        tmpfile_path = tmpfile.name
+        tmpfile.close()
+        manager.api_client.download_tcx = Mock(return_value=tmpfile_path)
 
         mock_select.return_value.ask.return_value = "Alice (ID: 12345)"
         mock_text.return_value.ask.return_value = "987654321"
-        mock_confirm.return_value.ask.return_value = False  # Don't process
+        mock_confirm.return_value.ask.return_value = False
 
-        with patch('builtins.print') as mock_print:
+        with patch('builtins.print'):
             manager._sync_activity()
             manager.api_client.download_tcx.assert_called_once()
 
@@ -283,7 +287,6 @@ class TestCoachSyncManager(unittest.TestCase):
 
         with patch('builtins.print') as mock_print:
             manager._sync_activity()
-            # Check error message was printed
             error_calls = [
                 call for call in mock_print.call_args_list
                 if "Invalid activity ID" in str(call)
@@ -314,10 +317,12 @@ class TestCoachSyncManager(unittest.TestCase):
 
         mock_select.return_value.ask.return_value = "Alice (ID: 12345)"
 
-        with patch('builtins.print') as mock_print:
+        with patch('builtins.print'):
             manager._list_activities()
             manager.api_client.list_activities.assert_called_once_with(
-                12345, per_page=10)
+                12345,
+                per_page=10
+            )
 
 
 class TestCoachModeMain(unittest.TestCase):
@@ -328,7 +333,6 @@ class TestCoachModeMain(unittest.TestCase):
         """Test coach mode main without OAuth config."""
         with patch('builtins.print') as mock_print:
             coach_mode_main()
-            # Should print warning about missing config
             warning_calls = [
                 call for call in mock_print.call_args_list
                 if "not configured" in str(call)

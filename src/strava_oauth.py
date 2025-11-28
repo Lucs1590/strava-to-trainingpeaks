@@ -146,11 +146,11 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
     authorization_code: Optional[str] = None
     error: Optional[str] = None
 
-    def log_message(self, format, *args):
+    def log_message(self, _, *args):
         """Suppress HTTP server logs."""
-        pass
+        ...
 
-    def do_GET(self):
+    def do_get(self):
         """Handle GET request for OAuth callback."""
         parsed = urlparse(self.path)
         if parsed.path == "/callback":
@@ -286,17 +286,16 @@ class StravaOAuthClient:
 
         try:
             webbrowser.open(auth_url)
-        except Exception as err:
+        except Exception:
             self.logger.warning(
                 "Could not open browser automatically. "
                 "Please manually navigate to: %s", auth_url
             )
 
-        print(f"\nPlease authorize the application in your browser.")
+        print("\nPlease authorize the application in your browser.")
         print(f"If the browser doesn't open, visit: {auth_url}")
         print(f"Waiting for authorization (timeout: {timeout}s)...\n")
 
-        # Wait for callback
         server_thread.join(timeout=timeout + 5)
         server.shutdown()
 
@@ -304,7 +303,7 @@ class StravaOAuthClient:
             return self._exchange_code_for_token(
                 OAuthCallbackHandler.authorization_code
             )
-        elif OAuthCallbackHandler.error:
+        if OAuthCallbackHandler.error:
             self.logger.error(
                 "Authorization failed: %s", OAuthCallbackHandler.error
             )
@@ -572,10 +571,10 @@ class StravaAPIClient:
 
             if i < len(latlng_stream) and latlng_stream[i]:
                 lat, lng = latlng_stream[i]
-                tp += f'          <Position>\n'
+                tp += '          <Position>\n'
                 tp += f'            <LatitudeDegrees>{lat}</LatitudeDegrees>\n'
                 tp += f'            <LongitudeDegrees>{lng}</LongitudeDegrees>\n'
-                tp += f'          </Position>\n'
+                tp += '          </Position>\n'
 
             if i < len(altitude_stream):
                 tp += f'          <AltitudeMeters>{altitude_stream[i]}</AltitudeMeters>\n'
@@ -584,14 +583,14 @@ class StravaAPIClient:
                 tp += f'          <DistanceMeters>{distance_stream[i]}</DistanceMeters>\n'
 
             if i < len(heartrate_stream):
-                tp += f'          <HeartRateBpm>\n'
+                tp += '          <HeartRateBpm>\n'
                 tp += f'            <Value>{heartrate_stream[i]}</Value>\n'
-                tp += f'          </HeartRateBpm>\n'
+                tp += '          </HeartRateBpm>\n'
 
             if i < len(cadence_stream):
                 tp += f'          <Cadence>{cadence_stream[i]}</Cadence>\n'
 
-            tp += f'        </Trackpoint>\n'
+            tp += '        </Trackpoint>\n'
             trackpoints.append(tp)
 
         # Build TCX structure
