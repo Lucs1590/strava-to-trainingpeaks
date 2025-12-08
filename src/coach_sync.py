@@ -11,11 +11,11 @@ from typing import Optional
 
 import questionary
 
-from .strava_oauth import (
+from strava_oauth import (
     StravaOAuthClient,
     StravaAPIClient
 )
-from .main import TCXProcessor
+from main import TCXProcessor
 
 
 def setup_logging() -> logging.Logger:
@@ -94,10 +94,11 @@ class CoachSyncManager:
         if not proceed:
             return
 
-        token = self.oauth_client.authorize_athlete(timeout=180)
+        token = self.oauth_client.authorize_athlete(timeout=60)
         if token:
             print(
-                f"\n✅ Successfully added athlete: {token.athlete_name} (ID: {token.athlete_id})")
+                f"\n✅ Successfully added athlete: {token.athlete_name} (ID: {token.athlete_id})"
+            )
         else:
             print("\n❌ Failed to add athlete. Please try again.")
 
@@ -141,7 +142,6 @@ class CoachSyncManager:
         if selection == "Cancel" or selection is None:
             return None
 
-        # Extract athlete ID from selection
         athlete_id = int(selection.split("ID: ")[1].rstrip(")"))
         return athlete_id
 
@@ -151,7 +151,6 @@ class CoachSyncManager:
         if not athlete_id:
             return
 
-        # Get activity ID
         activity_id_str = questionary.text(
             "Enter the Strava activity ID to sync:"
         ).ask()
@@ -165,7 +164,6 @@ class CoachSyncManager:
             print("❌ Invalid activity ID. Please enter a numeric ID.")
             return
 
-        # Get output path
         download_folder = Path.home() / "Downloads"
         download_folder.mkdir(parents=True, exist_ok=True)
         output_path = str(download_folder / f"activity_{activity_id}.tcx")
@@ -179,7 +177,6 @@ class CoachSyncManager:
             print(f"✅ Activity downloaded successfully to: {result}")
             print("\n📤 You can now upload this file to TrainingPeaks.")
 
-            # Option to process with main TCXProcessor
             process = questionary.confirm(
                 "Do you want to process this file with the main application?",
                 default=True
@@ -226,7 +223,7 @@ class CoachSyncManager:
             activity_id = activity.get("id")
             name = activity.get("name", "Unnamed")
             sport = activity.get("type", "Unknown")
-            distance = activity.get("distance", 0) / 1000  # Convert to km
+            distance = activity.get("distance", 0) / 1000
             date = activity.get("start_date_local", "Unknown date")[:10]
             print(
                 f"  [{activity_id}] {date} - {sport}: {name} ({distance:.2f} km)")
