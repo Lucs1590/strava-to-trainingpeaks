@@ -143,9 +143,9 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
     authorization_code: Optional[str] = None
     error: Optional[str] = None
 
-    def log_message(self, format, *args):
+    def log_message(self, fmt, *args):
         """Suppress HTTP server logs."""
-        pass
+        _ = (fmt, args)
 
     def do_GET(self):
         """Handle GET request for OAuth callback."""
@@ -715,36 +715,6 @@ class StravaAPIClient:
     ) -> Optional[str]:
         """Generate TCX content from Strava streams data."""
 
-        def build_trackpoint(trackpoint_index, start_time, time_stream, latlng_stream, altitude_stream, distance_stream, heartrate_stream, cadence_stream):
-            point_time = start_time + \
-                timedelta(seconds=time_stream[trackpoint_index])
-            trackpoint_element = '        <Trackpoint>\n'
-            trackpoint_element += f'          <Time>{point_time.strftime("%Y-%m-%dT%H:%M:%SZ")}</Time>\n'
-
-            if trackpoint_index < len(latlng_stream) and latlng_stream[trackpoint_index]:
-                lat, lng = latlng_stream[trackpoint_index]
-                trackpoint_element += '          <Position>\n'
-                trackpoint_element += f'            <LatitudeDegrees>{lat}</LatitudeDegrees>\n'
-                trackpoint_element += f'            <LongitudeDegrees>{lng}</LongitudeDegrees>\n'
-                trackpoint_element += '          </Position>\n'
-
-            if trackpoint_index < len(altitude_stream):
-                trackpoint_element += f'          <AltitudeMeters>{altitude_stream[trackpoint_index]}</AltitudeMeters>\n'
-
-            if trackpoint_index < len(distance_stream):
-                trackpoint_element += f'          <DistanceMeters>{distance_stream[trackpoint_index]}</DistanceMeters>\n'
-
-            if trackpoint_index < len(heartrate_stream):
-                trackpoint_element += '          <HeartRateBpm>\n'
-                trackpoint_element += f'            <Value>{heartrate_stream[trackpoint_index]}</Value>\n'
-                trackpoint_element += '          </HeartRateBpm>\n'
-
-            if trackpoint_index < len(cadence_stream):
-                trackpoint_element += f'          <Cadence>{cadence_stream[trackpoint_index]}</Cadence>\n'
-
-            trackpoint_element += '        </Trackpoint>\n'
-            return trackpoint_element
-
         sport_mapping = {
             "Run": "Running",
             "Ride": "Biking",
@@ -775,8 +745,14 @@ class StravaAPIClient:
 
         trackpoints = [
             build_trackpoint(
-                idx, start_time, time_stream, latlng_stream, altitude_stream,
-                distance_stream, heartrate_stream, cadence_stream
+                idx, start_time, {
+                    "time": time_stream,
+                    "latlng": latlng_stream,
+                    "altitude": altitude_stream,
+                    "distance": distance_stream,
+                    "heartrate": heartrate_stream,
+                    "cadence": cadence_stream
+                }
             )
             for idx in range(len(time_stream))
         ]
@@ -798,3 +774,40 @@ class StravaAPIClient:
 </TrainingCenterDatabase>'''
 
         return tcx
+
+
+def build_trackpoint(trackpoint_index, start_time, streams):
+    """Build a TCX Trackpoint element from stream data."""
+    point_time = start_time + \
+        timedelta(seconds=streams["time"][trackpoint_index])
+    trackpoint_element = '        <Trackpoint>\n'
+    trackpoint_element += f'          <Time>{point_time.strftime("%Y-%m-%dT%H:%M:%SZ")}</Time>\n'
+
+    latlng_stream = streams.get("latlng", [])
+    if trackpoint_index < len(latlng_stream) and latlng_stream[trackpoint_index]:
+        lat, lng = latlng_stream[trackpoint_index]
+        trackpoint_element += '          <Position>\n'
+        trackpoint_element += f'            <LatitudeDegrees>{lat}</LatitudeDegrees>\n'
+        trackpoint_element += f'            <LongitudeDegrees>{lng}</LongitudeDegrees>\n'
+        trackpoint_element += '          </Position>\n'
+
+    altitude_stream = streams.get("altitude", [])
+    if trackpoint_index < len(altitude_stream):
+        trackpoint_element += f'          <AltitudeMeters>{altitude_stream[trackpoint_index]}</AltitudeMeters>\n'
+
+    distance_stream = streams.get("distance", [])
+    if trackpoint_index < len(distance_stream):
+        trackpoint_element += f'          <DistanceMeters>{distance_stream[trackpoint_index]}</DistanceMeters>\n'
+
+    heartrate_stream = streams.get("heartrate", [])
+    if trackpoint_index < len(heartrate_stream):
+        trackpoint_element += '          <HeartRateBpm>\n'
+        trackpoint_element += f'            <Value>{heartrate_stream[trackpoint_index]}</Value>\n'
+        trackpoint_element += '          </HeartRateBpm>\n'
+
+    cadence_stream = streams.get("cadence", [])
+    if trackpoint_index < len(cadence_stream):
+        trackpoint_element += f'          <Cadence>{cadence_stream[trackpoint_index]}</Cadence>\n'
+
+    trackpoint_element += '        </Trackpoint>\n'
+    return trackpoint_element
