@@ -35,6 +35,13 @@ def setup_logging() -> logging.Logger:
 class CoachSyncManager:
     """Manager for coach mode operations."""
 
+    def get_athlete_count(self) -> int:
+        """Return the number of registered athletes."""
+        if not self.oauth_client:
+            return 0
+        athletes = self.oauth_client.list_athletes()
+        return len(athletes)
+
     def __init__(self, oauth_client: Optional[StravaOAuthClient] = None):
         self.logger = setup_logging()
         try:
@@ -48,7 +55,7 @@ class CoachSyncManager:
     def run(self) -> None:
         """Main coach mode menu."""
         if not self.oauth_client:
-            print("\n⚠️  Strava OAuth is not configured.")
+            print("\nStrava OAuth is not configured.")
             print(
                 "Please set STRAVA_CLIENT_ID and STRAVA_CLIENT_SECRET environment variables.")
             print("See docs/coach_mode.md for setup instructions.\n")
