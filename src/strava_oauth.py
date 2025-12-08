@@ -150,7 +150,7 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
         """Suppress HTTP server logs."""
         ...
 
-    def do_get(self):
+    def do_GET(self):
         """Handle GET request for OAuth callback."""
         parsed = urlparse(self.path)
         if parsed.path == "/callback":
