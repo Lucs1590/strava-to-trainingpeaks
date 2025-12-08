@@ -4,17 +4,17 @@ Strava OAuth 2.0 client for runner-side authorization.
 This module implements the OAuth 2.0 Authorization Code flow for Strava,
 allowing coaches to manage multiple athletes' tokens and sync their activities.
 """
-
 import json
 import logging
 import os
+import sys
 import time
 import webbrowser
 from dataclasses import dataclass, asdict
 from datetime import datetime, timedelta, timezone
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
-from threading import Thread
+
 from typing import Optional, Dict
 from urllib.parse import urlencode, urlparse, parse_qs
 
@@ -22,12 +22,10 @@ import requests
 from dotenv import load_dotenv
 
 
-# Strava API endpoints
 STRAVA_AUTH_URL = "https://www.strava.com/oauth/authorize"
 STRAVA_TOKEN_URL = "https://www.strava.com/oauth/token"
 STRAVA_API_BASE = "https://www.strava.com/api/v3"
 
-# Default configuration
 DEFAULT_REDIRECT_URI = "http://localhost:8089/callback"
 DEFAULT_SCOPES = "activity:read_all"
 DEFAULT_TOKEN_FILE = ".strava_tokens.json"
@@ -60,7 +58,6 @@ class AthleteToken:
 
     def is_expired(self) -> bool:
         """Check if the access token is expired."""
-        # Add a 5-minute buffer
         return time.time() >= (self.expires_at - 300)
 
 
@@ -449,7 +446,6 @@ class StravaOAuthClient:
         Returns:
             AthleteToken if successful, None otherwise.
         """
-        # Reset handler state
         OAuthCallbackHandler.authorization_code = None
         OAuthCallbackHandler.error = None
 
@@ -457,12 +453,7 @@ class StravaOAuthClient:
         port = parsed.port or 8089
 
         server = HTTPServer(('localhost', port), OAuthCallbackHandler)
-        # Set socket timeout to allow handle_request() to return periodically
-        server.socket.settimeout(1.0)
-
-        server_thread = Thread(target=self._run_server, args=(server, timeout))
-        server_thread.daemon = True
-        server_thread.start()
+        server.timeout = 1
 
         auth_url = self.get_authorization_url()
         self.logger.info("Opening browser for Strava authorization...")
@@ -480,34 +471,37 @@ class StravaOAuthClient:
         print(f"If the browser doesn't open, visit: {auth_url}")
         print(f"Waiting for authorization (timeout: {timeout}s)...\n")
 
-        server_thread.join(timeout=timeout + 5)
-        server.shutdown()
+        start_time = time.time()
+        try:
+            while (time.time() - start_time) < timeout:
+                if OAuthCallbackHandler.authorization_code or OAuthCallbackHandler.error:
+                    break
+
+                try:
+                    server.handle_request()
+                except OSError:
+                    break
+
+        finally:
+            try:
+                server.server_close()
+            except Exception:
+                pass
 
         if OAuthCallbackHandler.authorization_code:
             return self._exchange_code_for_token(
                 OAuthCallbackHandler.authorization_code
             )
+
         if OAuthCallbackHandler.error:
-            self.logger.error(
-                "Authorization failed: %s", OAuthCallbackHandler.error
-            )
-        else:
-            self.logger.error("Authorization timed out")
+            self.logger.error("Authorization failed: %s",
+                              OAuthCallbackHandler.error)
+            print(f"Authorization failed: {OAuthCallbackHandler.error}")
+            sys.exit(1)
 
-        return None
-
-    def _run_server(self, server: HTTPServer, timeout: int) -> None:
-        """Run the OAuth callback server."""
-        start_time = time.time()
-        while (time.time() - start_time) < timeout:
-            # Check if we've already received a response
-            if OAuthCallbackHandler.authorization_code or OAuthCallbackHandler.error:
-                break
-            try:
-                server.handle_request()
-            except OSError:
-                # Socket timeout - continue the loop
-                continue
+        self.logger.error("Authorization timed out after %s seconds", timeout)
+        print(f"Authorization timed out after {timeout} seconds")
+        sys.exit(1)
 
     def _exchange_code_for_token(self, code: str) -> Optional[AthleteToken]:
         """Exchange authorization code for access token."""
@@ -687,12 +681,10 @@ class StravaAPIClient:
             self.logger.error("No valid token for athlete %d", athlete_id)
             return None
 
-        # Get activity details to determine sport type
         activity = self.get_activity(athlete_id, activity_id)
         if not activity:
             return None
 
-        # Use streams endpoint for data export
         try:
             response = requests.get(
                 f"{STRAVA_API_BASE}/activities/{activity_id}/streams",
@@ -706,7 +698,6 @@ class StravaAPIClient:
             response.raise_for_status()
             streams = response.json()
 
-            # Generate TCX from streams
             tcx_content = self._generate_tcx_from_streams(activity, streams)
             if tcx_content:
                 with open(output_path, 'w', encoding='utf-8') as f:
@@ -744,7 +735,6 @@ class StravaAPIClient:
         except ValueError:
             start_time = datetime.now(timezone.utc)
 
-        # Build trackpoints
         trackpoints = []
         time_stream = streams.get("time", {}).get("data", [])
         distance_stream = streams.get("distance", {}).get("data", [])
@@ -782,7 +772,6 @@ class StravaAPIClient:
             tp += '        </Trackpoint>\n'
             trackpoints.append(tp)
 
-        # Build TCX structure
         tcx = f'''<?xml version="1.0" encoding="UTF-8"?>
 <TrainingCenterDatabase xmlns="http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2 http://www8.garmin.com/xmlschemas/TrainingCenterDatabasev2.xsd">
   <Activities>
