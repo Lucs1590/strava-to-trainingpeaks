@@ -143,9 +143,9 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
     authorization_code: Optional[str] = None
     error: Optional[str] = None
 
-    def log_message(self, _, *args):
+    def log_message(self, format, *args):
         """Suppress HTTP server logs."""
-        ...
+        pass
 
     def do_GET(self):
         """Handle GET request for OAuth callback."""
@@ -485,8 +485,8 @@ class StravaOAuthClient:
         finally:
             try:
                 server.server_close()
-            except Exception:
-                pass
+            except Exception as err:
+                self.logger.error("Error closing server: %s", str(err))
 
         if OAuthCallbackHandler.authorization_code:
             return self._exchange_code_for_token(
