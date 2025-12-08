@@ -1,22 +1,33 @@
 # Coach Mode - Multi-Athlete Sync Guide
 
-This guide explains how to use the Coach Mode feature to sync Strava activities for multiple athletes (runners) to TrainingPeaks.
+This guide explains how to use the Coach Mode feature to manage and sync Strava activities for multiple athletes.
 
 ## Overview
 
-Coach Mode allows coaches or managers to:
+Coach Mode enables coaches, trainers, and team managers to:
 
-- Authorize multiple athletes via OAuth (one-time setup per athlete)
-- Download activities on behalf of athletes
-- Sync activities to TrainingPeaks without requiring athletes to run any code
+- 🔐 **Secure OAuth Authorization**: Athletes authorize once through Strava's official OAuth flow
+- 👥 **Multi-Athlete Management**: Manage dozens of athletes from a single interface
+- 🔄 **Automatic Token Refresh**: Tokens are automatically refreshed when expired
+- 📥 **Batch Operations**: Download and process activities for multiple athletes
+- 🎯 **No Code Required**: Athletes don't need to install anything or run code
+- 🔒 **Token Security**: All tokens are stored securely and can be revoked anytime
+
+## Use Cases
+
+- **Professional Coaches**: Manage training data for your entire roster
+- **Team Managers**: Coordinate athlete data across your organization
+- **Training Groups**: Help athletes who aren't tech-savvy
+- **Triathlon Clubs**: Centralize data management for club members
 
 ## Prerequisites
 
-Before using Coach Mode, you need to:
+Before starting, ensure you have:
 
-1. **Create a Strava API Application**
-2. **Configure environment variables**
-3. **Have athletes authorize your application**
+1. **Python 3.12+** installed
+2. **Strava account** (coach/manager account)
+3. **Athletes willing to authorize** your application
+4. **Basic command line knowledge**
 
 ---
 
@@ -288,8 +299,76 @@ Coaches should inform athletes about data handling practices.
 
 ---
 
+## Best Practices for Coaches
+
+### Communication with Athletes
+
+1. **Clear Explanation**: Explain why you need OAuth access and what you'll use it for
+2. **Privacy Assurance**: Reassure athletes that their data is secure and won't be shared
+3. **Revocation Rights**: Inform them they can revoke access at any time
+4. **Regular Updates**: Keep athletes informed about their training data usage
+
+### Workflow Optimization
+
+1. **Batch Processing**: Schedule regular sync windows to process multiple athletes
+2. **Activity Filtering**: Focus on recent activities or specific date ranges
+3. **Token Management**: Regularly check token status to ensure smooth operations
+4. **Backup Strategy**: Keep backups of token files (securely) to prevent data loss
+
+### Scaling to Many Athletes
+
+- Use descriptive athlete names in the token file for easy identification
+- Implement a naming convention for downloaded TCX files (e.g., `athletename_date_activityid.tcx`)
+- Consider automating syncs with scheduled tasks or cron jobs
+- Monitor API rate limits when managing 10+ athletes
+
+---
+
+## Related Articles & Tutorials
+
+Learn more about this project and its capabilities:
+
+### Setup & Configuration
+- 📖 [Complete Setup Guide - Strava to Training Peaks](https://medium.com/p/fa3a0fa05f79)
+  - Step-by-step installation instructions
+  - OAuth configuration walkthrough
+  - Tips for managing multiple athletes
+
+### AI-Powered Features
+- 🤖 [LLM to Strava: Intelligent Training Analysis with AI Co-coaching](https://levelup.gitconnected.com/llm-to-strava-intelligent-training-analysis-with-ai-co-coaching-03f1cf866597)
+  - How the AI analysis feature works
+  - Understanding performance metrics
+  - Using audio summaries for training feedback
+
+### Video Tutorials
+- 🎥 [Manual Export from Strava to TrainingPeaks](https://www.youtube.com/watch?v=Y0nWzOAM8_M)
+  - Visual walkthrough of the export process
+
+---
+
 ## Further Resources
 
+### Official Documentation
 - [Strava API Documentation](https://developers.strava.com/docs/reference/)
-- [OAuth 2.0 Explained](https://developers.strava.com/docs/authentication/)
+- [OAuth 2.0 Authentication Guide](https://developers.strava.com/docs/authentication/)
 - [TrainingPeaks Import Guide](https://help.trainingpeaks.com/hc/en-us/articles/360014889633-Uploading-Activities)
+
+### Project Links
+- **Author**: [Lucas Brito](https://lucasbrito.com.br/)
+- **Repository**: [github.com/Lucs1590/strava-to-trainingpeaks](https://github.com/Lucs1590/strava-to-trainingpeaks)
+- **Issues**: [Report bugs or request features](https://github.com/Lucs1590/strava-to-trainingpeaks/issues)
+
+---
+
+## Support & Community
+
+Need help? Have questions?
+
+- 🐛 **Bug Reports**: [Open an issue on GitHub](https://github.com/Lucs1590/strava-to-trainingpeaks/issues)
+- 💡 **Feature Requests**: Share your ideas in the issue tracker
+- 📧 **Contact**: Reach out through [Lucas's website](https://lucasbrito.com.br/)
+- ⭐ **Show Support**: Star the repository if you find it useful!
+
+---
+
+*Last Updated: December 2024*
