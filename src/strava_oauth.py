@@ -161,7 +161,9 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
                 self._send_success_response()
             elif 'error' in params:
                 OAuthCallbackHandler.error = params.get(
-                    'error', ['unknown'])[0]
+                    'error',
+                    ['unknown']
+                )[0]
                 self._send_error_response()
             else:
                 self._send_error_response()
@@ -174,14 +176,99 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-type', 'text/html')
         self.end_headers()
-        html = """
+        html = f"""
         <!DOCTYPE html>
-        <html>
-        <head><title>Authorization Successful</title></head>
-        <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
-            <h1 style="color: #FC4C02;">✓ Authorization Successful!</h1>
-            <p>You have successfully authorized the Strava to TrainingPeaks app.</p>
-            <p>You can close this window and return to the application.</p>
+        <html lang="en">
+        <head>
+          <meta charset="utf-8"/>
+          <meta name="viewport" content="width=device-width,initial-scale=1"/>
+          <title>Authorization Successful</title>
+          <style>
+            :root {{
+              --accent-orange: #f8511d;
+              --accent-blue: #025693;
+              --bg: #f6f9fc;
+              --card: #ffffff;
+              --muted: #6b7280;
+            }}
+            body {{
+              margin: 0;
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+              background: linear-gradient(180deg, var(--bg), #eef4fb 60%);
+              color: #111827;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              height: 100vh;
+            }}
+            .card {{
+              background: var(--card);
+              border-radius: 12px;
+              box-shadow: 0 8px 30px rgba(2,86,147,0.08);
+              max-width: 720px;
+              width: 92%;
+              padding: 34px;
+              text-align: center;
+            }}
+            .badge {{
+              display: inline-flex;
+              align-items: center;
+              gap: 12px;
+              padding: 10px 16px;
+              border-radius: 999px;
+              background: linear-gradient(90deg, rgba(2,86,147,0.12), rgba(248,81,29,0.06));
+              border: 1px solid rgba(2,86,147,0.06);
+              margin-bottom: 18px;
+              color: var(--accent-blue);
+              font-weight: 600;
+              letter-spacing: 0.2px;
+            }}
+            .icon {{
+              display: inline-grid;
+              place-items: center;
+              background: var(--accent-blue);
+              color: white;
+              width: 44px;
+              height: 44px;
+              border-radius: 50%;
+              box-shadow: 0 6px 18px rgba(2,86,147,0.12);
+            }}
+            h1 {{
+              margin: 6px 0 8px;
+              font-size: 22px;
+              color: var(--accent-blue);
+            }}
+            p {{
+              margin: 8px 0;
+              color: var(--muted);
+              line-height: 1.45;
+            }}
+            .btn {{
+              padding: 10px 18px;
+              border-radius: 8px;
+              font-weight: 600;
+              cursor: pointer;
+              border: none;
+            }}
+            .small {{
+              font-size: 13px;
+              color: #9aa4b2;
+            }}
+            @media (max-width:480px) {{
+              .card {{ padding: 22px; }}
+            }}
+          </style>
+        </head>
+        <body>
+          <main class="card" role="main" aria-live="polite">
+            <div class="badge" aria-hidden="true">
+              <div class="icon">✓</div>
+              Authorized
+            </div>
+            <h1>Authorization Successful</h1>
+            <p>You have successfully authorized Strava to TrainingPeaks.</p>
+            <p class="small">You can safely close this window and return to the application.</p>
+          </main>
         </body>
         </html>
         """
@@ -192,14 +279,113 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
         self.send_response(400)
         self.send_header('Content-type', 'text/html')
         self.end_headers()
-        html = """
+        html = f"""
         <!DOCTYPE html>
-        <html>
-        <head><title>Authorization Failed</title></head>
-        <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
-            <h1 style="color: #D32F2F;">✗ Authorization Failed</h1>
-            <p>There was an error during authorization.</p>
-            <p>Please try again or contact support.</p>
+        <html lang="en">
+        <head>
+          <meta charset="utf-8"/>
+          <meta name="viewport" content="width=device-width,initial-scale=1"/>
+          <title>Authorization Failed</title>
+          <style>
+            :root {{
+              --accent-orange: #f8511d;
+              --accent-blue: #025693;
+              --bg: #fff6f5;
+              --card: #fff;
+              --muted: #6b7280;
+            }}
+            body {{
+              margin: 0;
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+              background: linear-gradient(180deg, #fff7f5, #fef8f6 60%);
+              color: #111827;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              height: 100vh;
+            }}
+            .card {{
+              background: var(--card);
+              border-radius: 12px;
+              box-shadow: 0 8px 30px rgba(248,81,29,0.06);
+              max-width: 720px;
+              width: 92%;
+              padding: 32px;
+              text-align: center;
+            }}
+            .badge {{
+              display: inline-flex;
+              align-items: center;
+              gap: 12px;
+              padding: 10px 16px;
+              border-radius: 999px;
+              background: linear-gradient(90deg, rgba(248,81,29,0.12), rgba(2,86,147,0.04));
+              border: 1px solid rgba(248,81,29,0.06);
+              margin-bottom: 18px;
+              color: var(--accent-orange);
+              font-weight: 700;
+            }}
+            .icon {{
+              display: inline-grid;
+              place-items: center;
+              background: var(--accent-orange);
+              color: white;
+              width: 44px;
+              height: 44px;
+              border-radius: 50%;
+              box-shadow: 0 6px 18px rgba(248,81,29,0.14);
+            }}
+            h1 {{
+              margin: 6px 0 8px;
+              font-size: 22px;
+              color: var(--accent-orange);
+            }}
+            p {{
+              margin: 8px 0;
+              color: var(--muted);
+              line-height: 1.45;
+            }}
+            .actions {{
+              margin-top: 18px;
+              display: flex;
+              gap: 12px;
+              justify-content: center;
+            }}
+            .btn {{
+              padding: 10px 18px;
+              border-radius: 8px;
+              font-weight: 600;
+              cursor: pointer;
+              border: none;
+            }}
+            .btn-retry {{
+              background: var(--accent-blue);
+              color: #fff;
+              box-shadow: 0 8px 24px rgba(2,86,147,0.12);
+            }}
+            .small {{
+              font-size: 13px;
+              color: #9aa4b2;
+            }}
+            @media (max-width:480px) {{
+              .card {{ padding: 22px; }}
+            }}
+          </style>
+        </head>
+        <body>
+          <main class="card" role="main" aria-live="assertive">
+            <div class="badge" aria-hidden="true">
+              <div class="icon">✕</div>
+              Authorization Error
+            </div>
+            <h1>Authorization Failed</h1>
+            <p>There was an error during authorization. Please try again or contact support.</p>
+            <p class="small">If the issue persists, ensure the client ID/secret and redirect URI are configured correctly.</p>
+
+            <div class="actions">
+              <button class="btn btn-retry" onclick="location.reload();">Try Again</button>
+            </div>
+          </main>
         </body>
         </html>
         """
@@ -267,11 +453,9 @@ class StravaOAuthClient:
         OAuthCallbackHandler.authorization_code = None
         OAuthCallbackHandler.error = None
 
-        # Parse port from redirect URI
         parsed = urlparse(self.config.redirect_uri)
         port = parsed.port or 8089
 
-        # Start callback server
         server = HTTPServer(('localhost', port), OAuthCallbackHandler)
         server.timeout = timeout
 
@@ -279,7 +463,6 @@ class StravaOAuthClient:
         server_thread.daemon = True
         server_thread.start()
 
-        # Open browser for authorization
         auth_url = self.get_authorization_url()
         self.logger.info("Opening browser for Strava authorization...")
         self.logger.info("Authorization URL: %s", auth_url)
