@@ -457,7 +457,8 @@ class StravaOAuthClient:
         port = parsed.port or 8089
 
         server = HTTPServer(('localhost', port), OAuthCallbackHandler)
-        server.timeout = timeout
+        # Set socket timeout to allow handle_request() to return periodically
+        server.socket.settimeout(1.0)
 
         server_thread = Thread(target=self._run_server, args=(server, timeout))
         server_thread.daemon = True
@@ -499,9 +500,14 @@ class StravaOAuthClient:
         """Run the OAuth callback server."""
         start_time = time.time()
         while (time.time() - start_time) < timeout:
-            server.handle_request()
+            # Check if we've already received a response
             if OAuthCallbackHandler.authorization_code or OAuthCallbackHandler.error:
                 break
+            try:
+                server.handle_request()
+            except OSError:
+                # Socket timeout - continue the loop
+                continue
 
     def _exchange_code_for_token(self, code: str) -> Optional[AthleteToken]:
         """Exchange authorization code for access token."""

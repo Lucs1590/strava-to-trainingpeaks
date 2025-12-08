@@ -11,11 +11,11 @@ from typing import Optional
 
 import questionary
 
-from strava_oauth import (
+from .strava_oauth import (
     StravaOAuthClient,
     StravaAPIClient
 )
-from main import TCXProcessor
+from .main import TCXProcessor
 
 
 def setup_logging() -> logging.Logger:
