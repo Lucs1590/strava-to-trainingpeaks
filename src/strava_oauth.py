@@ -714,6 +714,37 @@ class StravaAPIClient:
         self, activity: dict, streams: dict
     ) -> Optional[str]:
         """Generate TCX content from Strava streams data."""
+
+        def build_trackpoint(trackpoint_index, start_time, time_stream, latlng_stream, altitude_stream, distance_stream, heartrate_stream, cadence_stream):
+            point_time = start_time + \
+                timedelta(seconds=time_stream[trackpoint_index])
+            trackpoint_element = '        <Trackpoint>\n'
+            trackpoint_element += f'          <Time>{point_time.strftime("%Y-%m-%dT%H:%M:%SZ")}</Time>\n'
+
+            if trackpoint_index < len(latlng_stream) and latlng_stream[trackpoint_index]:
+                lat, lng = latlng_stream[trackpoint_index]
+                trackpoint_element += '          <Position>\n'
+                trackpoint_element += f'            <LatitudeDegrees>{lat}</LatitudeDegrees>\n'
+                trackpoint_element += f'            <LongitudeDegrees>{lng}</LongitudeDegrees>\n'
+                trackpoint_element += '          </Position>\n'
+
+            if trackpoint_index < len(altitude_stream):
+                trackpoint_element += f'          <AltitudeMeters>{altitude_stream[trackpoint_index]}</AltitudeMeters>\n'
+
+            if trackpoint_index < len(distance_stream):
+                trackpoint_element += f'          <DistanceMeters>{distance_stream[trackpoint_index]}</DistanceMeters>\n'
+
+            if trackpoint_index < len(heartrate_stream):
+                trackpoint_element += '          <HeartRateBpm>\n'
+                trackpoint_element += f'            <Value>{heartrate_stream[trackpoint_index]}</Value>\n'
+                trackpoint_element += '          </HeartRateBpm>\n'
+
+            if trackpoint_index < len(cadence_stream):
+                trackpoint_element += f'          <Cadence>{cadence_stream[trackpoint_index]}</Cadence>\n'
+
+            trackpoint_element += '        </Trackpoint>\n'
+            return trackpoint_element
+
         sport_mapping = {
             "Run": "Running",
             "Ride": "Biking",
@@ -735,7 +766,6 @@ class StravaAPIClient:
         except ValueError:
             start_time = datetime.now(timezone.utc)
 
-        trackpoints = []
         time_stream = streams.get("time", {}).get("data", [])
         distance_stream = streams.get("distance", {}).get("data", [])
         latlng_stream = streams.get("latlng", {}).get("data", [])
@@ -743,34 +773,13 @@ class StravaAPIClient:
         heartrate_stream = streams.get("heartrate", {}).get("data", [])
         cadence_stream = streams.get("cadence", {}).get("data", [])
 
-        for i, elapsed in enumerate(time_stream):
-            point_time = start_time + timedelta(seconds=elapsed)
-            tp = f'        <Trackpoint>\n'
-            tp += f'          <Time>{point_time.strftime("%Y-%m-%dT%H:%M:%SZ")}</Time>\n'
-
-            if i < len(latlng_stream) and latlng_stream[i]:
-                lat, lng = latlng_stream[i]
-                tp += '          <Position>\n'
-                tp += f'            <LatitudeDegrees>{lat}</LatitudeDegrees>\n'
-                tp += f'            <LongitudeDegrees>{lng}</LongitudeDegrees>\n'
-                tp += '          </Position>\n'
-
-            if i < len(altitude_stream):
-                tp += f'          <AltitudeMeters>{altitude_stream[i]}</AltitudeMeters>\n'
-
-            if i < len(distance_stream):
-                tp += f'          <DistanceMeters>{distance_stream[i]}</DistanceMeters>\n'
-
-            if i < len(heartrate_stream):
-                tp += '          <HeartRateBpm>\n'
-                tp += f'            <Value>{heartrate_stream[i]}</Value>\n'
-                tp += '          </HeartRateBpm>\n'
-
-            if i < len(cadence_stream):
-                tp += f'          <Cadence>{cadence_stream[i]}</Cadence>\n'
-
-            tp += '        </Trackpoint>\n'
-            trackpoints.append(tp)
+        trackpoints = [
+            build_trackpoint(
+                idx, start_time, time_stream, latlng_stream, altitude_stream,
+                distance_stream, heartrate_stream, cadence_stream
+            )
+            for idx in range(len(time_stream))
+        ]
 
         tcx = f'''<?xml version="1.0" encoding="UTF-8"?>
 <TrainingCenterDatabase xmlns="http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2 http://www8.garmin.com/xmlschemas/TrainingCenterDatabasev2.xsd">
