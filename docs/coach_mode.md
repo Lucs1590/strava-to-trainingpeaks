@@ -104,7 +104,7 @@ For athletes who can't be present:
 
 3. The callback will fail (since it's localhost), but they can copy the authorization code from the URL:
 
-   ```
+   ```bash
    http://localhost:8089/callback?code=XXXXXXXX&scope=...
    ```
 
