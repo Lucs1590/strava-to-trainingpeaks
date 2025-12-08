@@ -252,13 +252,12 @@ class TestCoachSyncManager(unittest.TestCase):
         manager.oauth_client.list_athletes = Mock(
             return_value={12345: "Alice"})
         manager.api_client = Mock()
-        tmpfile = tempfile.NamedTemporaryFile(
+        with tempfile.NamedTemporaryFile(
             prefix="activity_",
             suffix=".tcx",
             delete=False
-        )
-        tmpfile_path = tmpfile.name
-        tmpfile.close()
+        ) as tmpfile:
+            tmpfile_path = tmpfile.name
         manager.api_client.download_tcx = Mock(return_value=tmpfile_path)
 
         mock_select.return_value.ask.return_value = "Alice (ID: 12345)"
