@@ -7,6 +7,8 @@ openai==2.9.0
 pandas==2.3.3
 python-dotenv==1.2.1
 questionary==2.1.1
+requests
 scipy==1.16.3
+setuptools
 tcxreader==0.4.11
 tqdm==4.67.1

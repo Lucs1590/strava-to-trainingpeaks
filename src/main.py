@@ -127,7 +127,6 @@ class TCXProcessor:
     def _is_wsl_environment(self) -> bool:
         """Check if running in WSL environment."""
         try:
-            # Check for WSL-specific file
             if os.path.exists('/proc/version'):
                 with open('/proc/version', 'r', encoding='utf-8') as f:
                     return 'microsoft' in f.read().lower()
@@ -146,7 +145,6 @@ class TCXProcessor:
         except Exception:
             self.logger.error("Failed to download the TCX file from Strava")
 
-            # Provide specific guidance for common issues
             if self._is_wsl_environment():
                 self.logger.warning(
                     "Browser opening failed - this is common in WSL. "
@@ -205,7 +203,6 @@ class TCXProcessor:
         """Format TCX file for swimming activities."""
         xml_content = self._read_xml_file(file_path)
 
-        # Modify XML header
         xml_content = xml_content.replace(
             '<TrainingCenterDatabase xmlns="http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2">',
             '<TrainingCenterDatabase xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2" xsi:schemaLocation="http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2 http://www8.garmin.com/xmlschemas/TrainingCenterDatabasev2.xsd">'
