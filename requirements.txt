@@ -8,7 +8,7 @@ pandas==3.0.0
 python-dotenv==1.2.1
 questionary==2.1.1
 requests
-scipy==1.17.0
+scipy==1.17.1
 setuptools
 tcxreader==0.4.11
 tqdm==4.67.3
