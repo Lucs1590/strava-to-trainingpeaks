@@ -1,4 +1,4 @@
-cx_Freeze==8.5.3
+cx_Freeze==8.6.0
 defusedxml==0.7.1
 langchain_openai==1.1.10
 langchain_core==1.2.13
