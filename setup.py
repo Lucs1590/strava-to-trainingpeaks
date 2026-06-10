@@ -27,7 +27,7 @@ setup(
         "defusedxml==0.7.1",
         "langchain_openai==1.2.2",
         "langchain_core==1.4.0",
-        "numpy==2.4.4",
+        "numpy==2.4.6",
         "openai==2.37.0",
         "pandas==3.0.3",
         "python-dotenv==1.2.2",
@@ -35,7 +35,7 @@ setup(
         "requests",
         "scipy==1.17.0",
         "tcxreader==0.4.11",
-        "tqdm==4.67.3"
+        "tqdm==4.68.1"
     ],
     entry_points={
         "console_scripts": [
