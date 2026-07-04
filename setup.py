@@ -8,7 +8,9 @@ def read(file_name):
     with open(
         os.path.join(
             Path(os.path.dirname(__file__)),
-            file_name)
+            file_name
+        ),
+        encoding='utf-8'
     ) as _file:
         return _file.read()
 
