@@ -8,7 +8,9 @@ def read(file_name):
     with open(
         os.path.join(
             Path(os.path.dirname(__file__)),
-            file_name)
+            file_name
+        ),
+        encoding='utf-8'
     ) as _file:
         return _file.read()
 
@@ -26,16 +28,16 @@ setup(
     install_requires=[
         "defusedxml==0.7.1",
         "langchain_openai==1.2.2",
-        "langchain_core==1.4.0",
-        "numpy==2.4.6",
-        "openai==2.37.0",
-        "pandas==3.0.3",
+        "langchain_core==1.4.8",
+        "numpy==2.5.0",
+        "openai==2.40.0",
+        "pandas==3.0.4",
         "python-dotenv==1.2.2",
         "questionary==2.1.1",
         "requests",
-        "scipy==1.17.0",
+        "scipy==1.18.0",
         "tcxreader==0.4.11",
-        "tqdm==4.68.1"
+        "tqdm==4.68.3"
     ],
     entry_points={
         "console_scripts": [
