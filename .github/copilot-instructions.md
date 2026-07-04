@@ -2,147 +2,151 @@
 
 **CRITICAL**: Always reference these instructions first and fallback to search or bash commands only when you encounter unexpected information that does not match the info here.
 
-This repository contains a Python CLI application that downloads activities from Strava and uploads them to TrainingPeaks. The application uses interactive prompts for user guidance, supports AI-powered analysis with OpenAI, and can generate audio summaries.
+This repository contains a Python CLI application that downloads activities from Strava, formats TCX files for TrainingPeaks, and supports optional AI-powered analysis and audio summaries. The project now has two user-facing workflows: personal mode and coach mode.
 
 ## Environment Setup
 
 ### Prerequisites
-- **Python**: 3.12 (as specified in CI workflow, tested version)
-- **pip**: Latest version
-- **Internet access**: Required for OpenAI API and Strava downloads (optional for core functionality)
+
+- Python 3.12 or newer
+- pip, kept reasonably up to date
+- A Strava account for downloads and coach-mode OAuth
+- OpenAI API access only if you want AI analysis or audio summaries
 
 ### Quick Start Commands
+
 ```bash
 # Clone and setup (if starting fresh)
 git clone https://github.com/Lucs1590/strava-to-trainingpeaks
 cd strava-to-trainingpeaks
 
-# Essential setup (4-5 minutes total)
-pip install -r requirements.txt  # ~90 seconds
-pip install .                    # ~15 seconds
-python -m unittest discover -s tests -v  # ~52 seconds
+# Essential setup
+pip install -r requirements.txt
+pip install .
+python -m unittest discover -s tests -v
 
 # Verify installation
-strava-to-trainingpeaks  # Should show sport selection menu
+strava-to-trainingpeaks
 ```
 
 ## Working Effectively
 
-Bootstrap, build, and test the repository using these exact commands:
+Bootstrap, build, and test the repository using these commands:
 
-1. **Install dependencies**:
+1. Install dependencies:
+
    ```bash
    pip install -r requirements.txt
    ```
-   - **Timing**: ~90 seconds. NEVER CANCEL - Set timeout to 300+ seconds.
-   - **Dependencies**: 13 packages including cx_Freeze, langchain, openai, pandas, scipy
 
-2. **Install the package**:
+2. Install the package:
+
    ```bash
    pip install .
    ```
-   - **Timing**: ~15 seconds.
 
-3. **Run tests**:
+3. Run tests:
+
    ```bash
    python -m unittest discover -s tests -v
+   pytest --cov --junitxml=junit.xml -o junit_family=legacy
    ```
-   - **Timing**: ~52 seconds. NEVER CANCEL - Set timeout to 120+ seconds.
-   - **Coverage**: 73 tests, 99% code coverage on src/main.py
-   - Also run: `pytest --cov --junitxml=junit.xml -o junit_family=legacy`
 
-4. **Build executable (optional)**:
+   The active suite is split across `tests/test_main.py`, `tests/test_coach_sync.py`, and `tests/test_strava_oauth.py`.
+
+4. Build executable if needed:
+
    ```bash
    python exec_setup.py build
    ```
-   - **Timing**: ~13 minutes (783 seconds). NEVER CANCEL - Set timeout to 1200+ seconds.
-   - **Output**: Creates executable in `build/exe.linux-x86_64-3.12/main`
-   - **Size**: ~5.8MB executable with extensive library dependencies
 
 ## Running the Application
 
-- **CLI Command**: `strava-to-trainingpeaks` (after pip install)
-- **Direct Python**: `python src/main.py`
-- **Interactive Setup**: `python interactive_setup.py`
+- Personal mode CLI: `strava-to-trainingpeaks`
+- Coach mode CLI: `strava-coach-mode`
+- Personal mode direct run: `python src/main.py`
+- Coach mode direct run: `python src/coach_sync.py`
+- Interactive setup: `python interactive_setup.py`
 
-**IMPORTANT**: The application is interactive and requires user input. It will prompt for:
-- Sport selection (Bike, Run, Swim, Other)
-- Activity download method (download from Strava or provide file path)
-- Optional AI analysis (requires OpenAI API key)
-- Optional audio summary generation
+Important prompts and dependencies:
+
+- Personal mode asks for sport, source activity, optional AI analysis, and optional audio summary generation
+- Coach mode requires `STRAVA_CLIENT_ID` and `STRAVA_CLIENT_SECRET`
+- AI features require `OPENAI_API_KEY`
 
 ## Validation
 
-After making changes, ALWAYS run these validation steps in order:
+After making changes, run these checks in order:
 
 ### 1. Automated Testing
-```bash
-# Run full test suite (52 seconds, NEVER CANCEL)
-python -m unittest discover -s tests -v
 
-# Run with coverage reporting
+```bash
+python -m unittest discover -s tests -v
 pytest --cov --junitxml=junit.xml -o junit_family=legacy
 ```
 
-### 2. Import and Basic Functionality
-```bash
-# Test import works
-python -c "from src.main import TCXProcessor; print('Import successful')"
+If you are specifically testing OAuth behavior, make sure `STRAVA_CLIENT_ID` and `STRAVA_CLIENT_SECRET` are set or explicitly cleared so the environment does not change the result unexpectedly.
 
-# Test CLI entry point exists
-which strava-to-trainingpeaks  # Should show path after pip install
+### 2. Import and Basic Functionality
+
+```bash
+python -c "from src.main import TCXProcessor; print('Import successful')"
+python -c "from src.strava_oauth import StravaOAuthClient; print('OAuth import successful')"
+which strava-to-trainingpeaks
+which strava-coach-mode
 ```
 
 ### 3. Manual Validation Scenarios
 
-**CRITICAL**: You must manually test the application's core workflow after any changes:
+1. Personal mode launch:
 
-1. **Basic CLI Launch**:
    ```bash
    python src/main.py
    ```
-   - **Expected**: Sport selection menu appears with 4 options (Bike, Run, Swim, Other)
-   - **Action**: Verify menu renders correctly, then Ctrl+C to exit
 
-2. **Package Installation Test**:
+   Expected: the sport selection menu and the personal-mode workflow.
+
+2. Coach mode launch:
+
    ```bash
-   strava-to-trainingpeaks
+   python src/coach_sync.py
    ```
-   - **Expected**: Same sport selection menu
-   - **Action**: Verify global command works after pip install
 
-3. **Interactive Setup Test**:
+   Expected: the coach-mode menu, or a clear message that OAuth is not configured if the Strava credentials are missing.
+
+3. Installation helper:
+
    ```bash
    python interactive_setup.py
    ```
-   - **Expected**: Setup method selection menu (Global installation, Virtual environment, Docker)
-   - **Action**: Verify interactive prompts work correctly
 
-### 4. Build Validation (if modifying core functionality)
+   Expected: setup method selection for global install, virtual environment, or Docker.
+
+### 4. Build Validation
+
 ```bash
-# Test executable build (13 minutes, NEVER CANCEL, timeout 1200+ seconds)
 python exec_setup.py build
-
-# Test executable runs
 ./build/exe.linux-x86_64-3.12/main
 ```
 
 ### 5. CI/CD Validation
-Always ensure your changes don't break the GitHub Actions workflow:
-- Tests must pass in CI environment
-- Coverage must remain above 99%
-- No new linting issues should be introduced
+
+- Tests must pass in CI
+- Coverage is enforced in the GitHub Actions workflow
+- Do not introduce new linting issues
 
 ## Common Tasks
 
 ### Testing Different Installation Methods
 
-1. **Global Installation** (recommended for development):
+1. Global installation:
+
    ```bash
    pip install .
    ```
 
-2. **Virtual Environment**:
+2. Virtual environment:
+
    ```bash
    python -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
@@ -150,12 +154,14 @@ Always ensure your changes don't break the GitHub Actions workflow:
    pip install .
    ```
 
-3. **Interactive Setup**:
+3. Interactive setup:
+
    ```bash
    python interactive_setup.py
    ```
 
-4. **Docker** (network-dependent, may fail in sandboxed environments):
+4. Docker:
+
    ```bash
    docker build -t strava-to-trainingpeaks .
    docker run -it --rm strava-to-trainingpeaks
@@ -163,82 +169,91 @@ Always ensure your changes don't break the GitHub Actions workflow:
 
 ### Key Files and Directories
 
-- `src/main.py` - Main application entry point with TCXProcessor class
-- `tests/test_main.py` - Comprehensive test suite (73 tests)
+- `src/main.py` - Personal mode entry point and `TCXProcessor`
+- `src/coach_sync.py` - Coach mode menu and athlete sync workflow
+- `src/strava_oauth.py` - Strava OAuth and API client code
+- `tests/test_main.py` - Personal mode test suite
+- `tests/test_coach_sync.py` - Coach mode test suite
+- `tests/test_strava_oauth.py` - OAuth and API client tests
+- `docs/coach_mode.md` - Coach-mode setup guide
 - `requirements.txt` - Python dependencies
-- `setup.py` - Package configuration and entry points
-- `exec_setup.py` - cx_Freeze configuration for executable builds
-- `interactive_setup.py` - Interactive installation script
-- `Dockerfile` - Docker configuration
-- `.github/workflows/coverage.yml` - CI/CD pipeline
-- `.pylintrc` - Linting configuration (may have compatibility issues with newer pylint)
-
-### CI/CD Integration
-
-The repository uses GitHub Actions for testing:
-- **Coverage Workflow**: `.github/workflows/coverage.yml`
-- **Python Version**: 3.12
-- **Test Command**: `pytest --cov --junitxml=junit.xml -o junit_family=legacy`
-- **Coverage**: Reports to Codecov
+- `setup.py` - Package configuration and console entry points
+- `exec_setup.py` - cx_Freeze build configuration
+- `interactive_setup.py` - Interactive installer
+- `.github/workflows/coverage.yml` - CI workflow
+- `.pylintrc` - Linting configuration; do not rely on direct pylint runs for validation
 
 ## Development Guidelines
 
 ### Code Quality
-- **DO NOT** run `pylint` directly - the `.pylintrc` configuration has compatibility issues
-- **DO** run the full test suite before committing
-- **DO** maintain 99%+ test coverage
-- **DO** follow the existing code style in `src/main.py`
+
+- Do not run `pylint` directly; use the test suite and coverage workflow instead
+- Run the full test suite before finishing changes
+- Keep changes consistent with the existing style in `src/main.py`, `src/coach_sync.py`, and `src/strava_oauth.py`
 
 ### Performance Considerations
-- The application processes TCX files and may perform data preprocessing
-- AI analysis is optional and requires OpenAI API key
-- Audio generation uses OpenAI TTS API
-- Large datasets are reduced using Euclidean filtering
+
+- TCX processing may preprocess and reduce larger datasets
+- AI analysis is optional and depends on OpenAI
+- Audio summaries use OpenAI TTS
+- Coach mode can batch-download activities for multiple athletes
 
 ### API Dependencies
-- **OpenAI API**: For AI analysis and audio generation (optional)
-- **Strava API**: For downloading TCX files (requires activity ID)
-- **TrainingPeaks**: Manual upload destination
+
+- OpenAI API: optional, for analysis and audio summaries
+- Strava API: required for activity downloads and coach mode
+- TrainingPeaks: the manual upload destination for formatted TCX files
 
 ## Troubleshooting
 
 ### Common Issues
-1. **Interactive prompts hang**: The application requires user input - this is expected behavior
-2. **Docker build fails**: Network connectivity issues in sandboxed environments are expected
-3. **Pylint errors**: Use the test suite instead of pylint for code validation
-4. **Long build times**: cx_Freeze builds are CPU-intensive and take 13+ minutes
+
+1. Interactive prompts hang because the application expects user input
+2. Docker builds can fail in sandboxed environments because of network access
+3. OAuth tests and coach mode depend on `STRAVA_CLIENT_ID` and `STRAVA_CLIENT_SECRET`
+4. Long builds are normal for the cx_Freeze executable step
 
 ### Error Messages
-- **"Invalid TCX file"**: TCX validation failed, check file format
-- **"OpenAI API key not found"**: Set `OPENAI_API_KEY` environment variable for AI features
-- **"No TCX file found in Downloads folder"**: Application looks for downloaded files automatically
+
+- Invalid TCX file: TCX validation failed
+- OpenAI API key not found: set `OPENAI_API_KEY` if you want AI features
+- STRAVA_CLIENT_ID and STRAVA_CLIENT_SECRET environment variables are required: configure coach mode credentials
+- No TCX file found in Downloads folder: the app could not find a downloaded file automatically
 
 ## File Structure Reference
 
 ```
 strava-to-trainingpeaks/
-├── .github/workflows/coverage.yml    # CI/CD pipeline
+├── .github/workflows/coverage.yml
 ├── src/
 │   ├── __init__.py
-│   └── main.py                       # Main application (TCXProcessor class)
+│   ├── coach_sync.py
+│   ├── main.py
+│   └── strava_oauth.py
 ├── tests/
 │   ├── __init__.py
-│   └── test_main.py                  # Test suite (73 tests)
-├── requirements.txt                  # Dependencies
-├── setup.py                          # Package configuration
-├── exec_setup.py                     # Executable build config
-├── interactive_setup.py              # Interactive installer
-├── Dockerfile                        # Docker configuration
-├── Makefile                          # Simple install target
-├── __version__.py                    # Version: 1.3.0
-└── README.md                         # Documentation
+│   ├── test_coach_sync.py
+│   ├── test_main.py
+│   └── test_strava_oauth.py
+├── requirements.txt
+├── setup.py
+├── exec_setup.py
+├── interactive_setup.py
+├── Dockerfile
+├── Makefile
+├── __version__.py
+└── README.md
 ```
 
 ## Key Classes and Functions
 
-- `TCXProcessor`: Main application class handling TCX file processing
-- `TrackpointProcessor`: Data preprocessing for trackpoint analysis
-- `ProcessingConfig`: Configuration for data processing parameters
-- `Sport` enum: Bike, Run, Swim, Other activity types
+- `TCXProcessor`: personal-mode TCX processing and AI analysis
+- `TrackpointProcessor`: trackpoint preprocessing and reduction
+- `CoachSyncManager`: coach-mode menu and athlete management
+- `StravaOAuthClient`: OAuth authorization and token management
+- `StravaAPIClient`: coach-mode activity download client
+- `ProcessingConfig`: data-processing parameters
+- `AnalysisConfig`: AI analysis configuration
+- `Sport`: bike, run, swim, and other activity types
 
 REMEMBER: This is an interactive CLI application. Always account for user input requirements when testing or demonstrating functionality.
