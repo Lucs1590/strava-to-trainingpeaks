@@ -8,7 +8,9 @@ def read(file_name):
     with open(
         os.path.join(
             Path(os.path.dirname(__file__)),
-            file_name)
+            file_name
+        ),
+        encoding='utf-8'
     ) as _file:
         return _file.read()
 
@@ -28,7 +30,7 @@ setup(
         "langchain_openai==1.2.1",
         "langchain_core==1.4.8",
         "numpy==2.5.0",
-        "openai==2.37.0",
+        "openai==2.40.0",
         "pandas==3.0.4",
         "python-dotenv==1.2.2",
         "questionary==2.1.1",
