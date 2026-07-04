@@ -1,3 +1,35 @@
+## 1.3.1 (2026-07-04)
+
+### Fix
+
+- correct indentation in read function for better readability
+- handle case where OAuth client is not configured in get_athlete_count method
+- improve logging in OAuth callback handler and enhance error handling during server closure
+- improve OAuth callback server timeout handling
+- specify code block language in Coach Mode documentation
+- rename do_get to do_GET in OAuthCallbackHandler
+- import TCXProcessor in coach_sync.py for TCX file processing
+- update package versions in requirements.txt and setup.py
+- fix formatting of keys in greatings.yml
+- update tests to match simplified WSL error handling implementation
+- update test assertions to match current logger-based implementation
+- remove redundant root user check and simplify warning messages in TCXProcessor
+- improve error handling in TCXProcessor and enhance test assertions in TestMain
+- replace print statements with logger calls in TCXProcessor for better logging
+- remove unnecessary whitespace in TCXProcessor class methods
+- clean up whitespace in test cases for WSL and root environment checks
+- removing useless file
+
+### Refactor
+
+- enhance TCX trackpoint generation by extracting logic into a separate function
+- simplify TCX trackpoint generation by extracting logic into a helper function
+- use context manager for temporary file handling in TestCoachSyncManager
+- streamline OAuth callback handling and improve error reporting
+- enhance OAuth callback HTML responses with improved styling and error handling
+- remove commented-out code and improve TCX file processing
+- update import statements and improve athlete authorization timeout
+
 ## 1.3.0 (2025-09-22)
 
 ### Feat
