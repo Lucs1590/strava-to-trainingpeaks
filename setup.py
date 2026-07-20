@@ -37,7 +37,7 @@ setup(
         "requests",
         "scipy==1.18.0",
         "tcxreader==0.4.11",
-        "tqdm==4.68.4"
+        "tqdm==4.69.0"
     ],
     entry_points={
         "console_scripts": [
