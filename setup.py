@@ -29,7 +29,7 @@ setup(
         "defusedxml==0.7.1",
         "langchain_openai==1.4.1",
         "langchain_core==1.5.3",
-        "numpy==2.5.1",
+        "numpy==2.5.2",
         "openai==2.53.0",
         "pandas==3.0.5",
         "python-dotenv==1.2.2",
