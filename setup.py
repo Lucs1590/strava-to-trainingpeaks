@@ -32,7 +32,7 @@ setup(
         "numpy==2.5.2",
         "openai==3.1.0",
         "pandas==3.0.5",
-        "python-dotenv==1.2.2",
+        "python-dotenv==1.2.3",
         "questionary==2.1.1",
         "requests",
         "scipy==1.18.0",
