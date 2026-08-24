@@ -30,7 +30,7 @@ setup(
         "langchain_openai==1.5.1",
         "langchain_core==1.6.0",
         "numpy==2.5.2",
-        "openai==3.1.0",
+        "openai==3.3.1",
         "pandas==3.0.5",
         "python-dotenv==1.2.3",
         "questionary==2.1.1",
