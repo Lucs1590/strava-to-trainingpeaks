@@ -35,7 +35,7 @@ setup(
         "python-dotenv==1.2.3",
         "questionary==2.1.1",
         "requests",
-        "scipy==1.18.0",
+        "scipy==1.18.1",
         "tcxreader==0.4.11",
         "tqdm==4.70.0"
     ],
