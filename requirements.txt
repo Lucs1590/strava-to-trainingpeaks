@@ -11,4 +11,4 @@ requests
 scipy==1.18.1
 setuptools
 tcxreader==0.4.11
-tqdm==4.70.0
+tqdm==4.70.1
