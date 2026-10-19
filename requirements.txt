@@ -2,7 +2,7 @@ cx_Freeze==8.7.2
 defusedxml==0.7.1
 langchain_openai==1.6.7
 langchain_core==1.6.11
-numpy==2.5.3
+numpy==2.5.4
 openai==3.31.0
 pandas==3.0.6
 python-dotenv==1.2.4
