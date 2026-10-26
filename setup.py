@@ -31,7 +31,7 @@ setup(
         "langchain_core==1.6.11",
         "numpy==2.5.3",
         "openai==3.31.0",
-        "pandas==3.0.6",
+        "pandas==3.1.0",
         "python-dotenv==1.2.4",
         "questionary==2.1.1",
         "requests",
